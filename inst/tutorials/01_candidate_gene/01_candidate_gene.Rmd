@@ -27,7 +27,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ## Introduction
 
-The goal of these tutorials is to help you understand the basics of genetic association testing. We'll start with very basic methods, such as *simple marker analyses* to introduce the important notions. We'll then introduce *genetic maps* and show how to compute the frequency of unobserved markers form the frequencies of observed markers. We'll end up with *simple interval mapping*, a method that combines *simple marker analyses* and *genetic maps* to find *Quantitative Traits Loci* (QTL).
+The goal of these tutorials is to help you understand the basics of genetic association testing. We'll start with very basic methods, such as *simple marker analyses* to introduce the important notions. We'll then introduce *genetic maps* and show how to compute the frequency of unobserved markers form the frequencies of observed markers. We'll end up with *simple interval mapping*, a method that combines *simple marker analyses* and *genetic maps* to find *Quantitative Traits Loci* (QTL) when we don't have *a priori* candidate genes. 
 
 ## Simple Marker Analyses
 
