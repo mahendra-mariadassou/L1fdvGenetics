@@ -567,7 +567,18 @@ $$
 
 Note that there is a slight abuse of notation here as the $\hat{\sigma}$ in the numerator ($\hat{\sigma}=1.08$) is not the same as the one in the denominator ($\hat{\sigma}=1.13$). 
 
-As stated in (Lander and Botstein (1989))[https://www.genetics.org/content/121/1/185], the LOD score *essentially indicates how much  more  probable the data are to have arisen assuming the presence of a QTL [read $H_1: \Delta \mu \neq 0$] than assuming its absence [read $H_1: \Delta \mu = 0$].*
+As stated in [Lander and Botstein (1989)](https://www.genetics.org/content/121/1/185), the LOD score *essentially indicates how much  more probable the data are to have arisen assuming the presence of a QTL [read $H_1: \Delta \mu \neq 0$] than assuming its absence [read $H_1: \Delta \mu = 0$].*
+
+We usually consider LOD higher than 2 or 3 as strong evidence for association between the loci and the phenotype, or in other words, as strong evidence for the presence of a QTL. 
+
+```{r q11}
+question("If we want the presence of a QTL to be 1000 times more probable than its absence, we must choose have:",
+         answer("LOD > 2"), 
+         answer("LOD > 3", correct = TRUE), 
+         answer("LOD > 6.9"), 
+         allow_retry = TRUE, random_answer_order = TRUE, 
+         post_message = "According to the formula, the fraction should be higher than 1000 and thus the LOD should be higher than $\\log_{10}(1000) = 3$.")
+```
 
 
 
