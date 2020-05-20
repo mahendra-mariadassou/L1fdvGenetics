@@ -18,10 +18,14 @@ You first need to install **R** and **Rstudio** on your computer.
 ### Installing R
 
 Go to the CRAN [webpage](https://cran.r-project.org/), select your OS
-and follow the instructions. - On Windows, you should just download and
-execute an .exe file. - On MacOS, you should just download and execute a
-.pkg file. - On Linux, you can get install R from the command line using
-something like
+and follow the instructions.
+
+  - On Windows, you should just download and execute an .exe file.
+  - On MacOS, you should just download and execute a .pkg file.
+  - On Linux, you can get install R from the command line using
+    something like
+
+<!-- end list -->
 
 ``` bash
 ## If you're on Ubuntu
@@ -33,6 +37,9 @@ On **Windows**: you may need **Rtools** and **git**
   - **Rtools**: visit the dedicated
     [page](https://cran.r-project.org/bin/windows/Rtools/), download the
     suggested exe and install it on your computer
+  - **git**: visit the dedicated
+    [page](https://git-scm.com/download/win), download the suggested exe
+    and install it on your computer
 
 On **MacOS**: you may need **XCode**
 
