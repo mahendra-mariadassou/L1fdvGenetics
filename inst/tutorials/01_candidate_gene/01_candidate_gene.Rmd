@@ -1,0 +1,575 @@
+---
+title: "Simple Marker"
+output: 
+  learnr::tutorial:
+    progressive: true
+    allow_skip: true
+    df_print: default
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+set.seed(2012)
+data <- data.frame(Organism  = 1:100, 
+                   Genotype  = sample(c("G0", "G1"), size = 100, replace = TRUE), 
+                   Phenotype = factor(sample(c("Low", "High"), size = 100, replace = TRUE), levels = c("Low", "High")))
+Genotype <- sample(c("G0", "G1"), size = 100, replace = TRUE) 
+data_cont <- data.frame(Organism  = 1:100, 
+                   Genotype  = Genotype,
+                   Phenotype = rnorm(100, 10, 1) + ifelse(Genotype == "G0", 0.5, 0))
+checker <- function(label, user_code, check_code, envir_result, evaluate_result, ...) {
+  list(message = check_code, correct = TRUE, location = "append")
+}
+tutorial_options(exercise.timelimit = 60, exercise.checker = checker)
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Introduction
+
+The goal of these tutorials is to help you understand the basics of genetic association testing. We'll start with very basic methods, such as *simple marker analyses* to introduce the important notions. We'll then introduce *genetic maps* and show how to compute the frequency of unobserved markers form the frequencies of observed markers. We'll end up with *simple interval mapping*, a method that combines *simple marker analyses* and *genetic maps* to find *Quantitative Traits Loci* (QTL).
+
+## Simple Marker Analyses
+
+We're interested in the possible association between a *phenotype* (say `Ig1` levels) and a  *genotype* (say gene `G` with two alleles `G0` and `G1`). Assume for now for simplicity that:
+- gene `G` was selected based on expert knowledge (or previous results from the literature). 
+- you work with haploid organisms so that each organism only has *one* copy of gene `G`. 
+
+**Remark:** The haploid assumption is convenient but of course slightly unrealistic. It's however reasonable when we work with organisms with organisms from highly inbred lineages (such as Lewis and BN mices) where both copies of the chromosomes are almost identicial. We can also lift the assumption to accomodate diploidy but we then need to specify whether your gene has *dominant*, *additive* or *recessive* effect. We'll ignore it for now. 
+
+We can rephrase the association study as the following question **"Are Ig1 levels different in organisms with alleles `G0` and `G1`?"**. We'll try to answer that question step-by-step. 
+
+## Discrete phenotype
+
+We assume first (again for simplicity) that the phenotype is discrete and takes only two values: `low` and `high`. To answer our question, we need to collect data first. 
+
+We consider a population of $n = 100$ organisms. For each organism $i \in \{1, \dots\, n\}$, we measure its 
+- phenotype $x_i$ (`Ig1` level): `high` or `low`
+- genotype $g_i$ (allele of gene `G`): `G0` or `G1`
+
+The data might look like this (first 10 organisms):
+
+```{r}
+knitr::kable(head(data))
+```
+
+To answer our data, we first summarize the data into a *contigency table*: 
+
+```{r}
+with(data, table(Genotype, Phenotype))
+```
+
+To make we read the table correctly, let's answer a few questions:
+
+```{r q1}
+question(
+  "What's the proportion $p_H^0$ of `High` Ig1 levels among `G0` organisms?",
+  answer("$p_H^0 = 0.51$", correct = TRUE),
+  answer("$p_H^0 = 0.50$", correct = FALSE, message = "Compute carefully the number of `G0` organisms"),
+  allow_retry = TRUE,
+  post_message = "This a double entry table. There are 25 `G0` organisms with `High` Ig1 levels and 24 `G0` organisms with `Low` Ig1 levels. In total there are 24+25=49 `G0` organisms, of which a proportion 25/49=0.51 have `High` Ig1 levels."
+)
+```
+
+```{r q2}
+question(
+  "What's the proportion $p_H^1$ of `High` Ig1 levels among `G1` organisms?",
+  answer("$p_H^1 = 0.0.49$", correct = TRUE),
+  answer("$p_H^1 = 0.50$", correct = FALSE, message = "Compute carefully the number of `G1` organisms"),
+  allow_retry = TRUE,
+  post_message = "This a double entry table. There are 25 `G0` organisms with `High` Ig1 levels and 26 `G0` organisms with `Low` Ig1 levels. In total there are 26+25=51 `G1` organisms, of which a proportion 25/51=0.49 have `High` Ig1 levels."
+)
+```
+
+In the following, I will use $p_H^0$ to denote the true (and unknown) proportion in the full population of `G0` organisms and $\hat{p}_H^0$ the observed proportion (in our sample). Think of $\hat{p}_H^0$ as a noisy version of $p_H^0$. 
+
+### Comparing proportions 
+
+```{r, fig.width=5}
+barplot(height = cbind(c(24, 25), c(26, 25)), names.arg = c("G0", "G1"), 
+        xlab = "Genotype", 
+        ylab = "Nb. organisms"
+        )
+text(x = c(0.7, 1.9), y = c(25, 27), labels = "High", adj = c(0.5, 0), col = "black")
+text(x = c(0.7, 1.9), y = 1, labels = "Low", adj = c(0.5, 0), col = "white")
+```
+
+In this toy dataset, there are 51% of `High` levels among `G0` organisms and 49% among `G1` organisms. The difference is $\Delta \hat{p} = \hat{p}_H^0 - \hat{p}_H^1 = $ 2%. 
+
+Based on those results, we might be tempted to conclude that allele $G_0$ increases Ig1 levels. A tiny problem is that we don't known whether $\Delta \hat{p} = $ 2% is that big of a difference. After all, if two of our organisms with `Low` levels had been `G0` instead of `G1`, the results would have been quite different...
+
+```{r q3}
+question(
+  "Assume that two organisms with `Low` levels had been `G0` instead of `G1`. What would be value of $\\Delta \\hat{p}$?",
+  answer("$\\Delta \\hat{p} = 2$%", correct = FALSE, message = "You changed the data, $\\Delta \\hat{p}$ should surely change as a result."),
+  answer("$\\Delta \\hat{p} = 0$%", correct = FALSE, message = "Try again."),
+  answer("$\\Delta \\hat{p} = -2$%", correct = TRUE),
+  allow_retry = TRUE,
+  post_message = "Changing the genotype of these two organisms leads to the same contingency table as before but with rows `G0` and `G1` switched. The value of $\\Delta \\hat{p}$ therefore just changes sign. You can also do the full computation to convince yourself."
+)
+```
+
+### Assessing significance
+
+We saw in the previous part that $\Delta \hat{p} = $ 2% is not that big and that we can't draw strong conclusions from it. Indeed changing a mere two data points would revert our conclusions. As we expect our data set to be noisy (some organisms might have incorrect genotypes and/or phenotypes), we'd like to know when we can confidently say anything about the genotype - phenotype link from $\Delta \hat{p}$. 
+
+We therefore need to determine what constitutes a *large difference* $\Delta \hat{p}$. In statistical term, it's called *assessing significance*. 
+
+Let's do a thought experiment first. Assume that there are no differences between genotypes `G0` and `G1` (or in formal terms that ). The (observed) proportion of `High` levels in the *whole* population is $\hat{p}_H = \frac{25+25}{25+25+24+26} = \frac{1}{2}$. We had $n_0 = 49$ `G0` organisms and $n_1 = 51$ `G1`  and in our original data set. Let's create fake data sets by assuming that each organism has `High` levels with probability $p_H = 0.5$ (and therefore `Low` levels with probability $p_L = 0.5$). Although called fake, we could have observed every single one of them if $p_H^0 = p_H^1 = p_H = 0.5$. 
+
+The function `create_fake()` does exactly that: it creates a fake dataset (as stated before), computes its contigency table and compute $\Delta \hat{p}$ on that data set. Run it several times (by clicking the `Run code` button).  
+
+```{r create_fake_setup}
+create_fake <- function() {
+  data <- data.frame(
+    Organism  = 1:100, 
+    Genotype  = rep(c("G0", "G1"), times = c(49, 51)), 
+    Phenotype = factor(sample(c("Low", "High"), size = 100, replace = TRUE), levels = c("Low", "High")))
+  tab <- with(data, table(Genotype, Phenotype))
+  deltap <- -100 * diff(tab[, 2] / rowSums(tab))
+  print(tab)
+  cat(paste0("Delta p = ", round(deltap, digits = 2), "%"))
+  invisible(deltap)
+}
+```
+
+```{r create_fake, exercise = TRUE}
+create_fake()
+```
+
+Compare (mentally) the value $\Delta \hat{p}$ computed on the original data set to the range of values computed on those fake data sets. 
+
+```{r q4}
+question("Would you say $\\Delta \\hat{p}$ is", 
+         answer("Within the range", correct = TRUE), 
+         answer("Outside of the range", correct = FALSE), 
+         post_message = "$\\Delta \\hat{p}$=2% is well within the range: most values are between -14% and 14%."
+         )
+```
+
+### Assessing significance (II)
+
+The fake datasets from the previous section informed us that, **even when there are no differences between `G0` and `G1`**, it's quite common to observe values of $\Delta \hat{p}$ as low as -15% and as high as 15% based on sheer luck (see graph, based on 200 calls to `create_fake()`). $\Delta \hat{p} = 2$% is therefore quite typical and not large enough to conclude that `G0` and `G1` are different. 
+
+```{r results='hide'}
+set.seed(1)
+values <- replicate(expr = create_fake(), n = 200)
+hist(values, main = NULL, xlab = expression(Delta*hat(p)~from~fake~samples), freq = TRUE)
+abline(v = 2, col = "red")
+text(x = 2, y = 30, font = 2, col = "red", expression(Delta*hat(p)==2), adj = c(0, 0.5))
+```
+
+
+```{r q5}
+question("Based on the previous graph, what ranges of values would you consider atypical for $\\Delta \\hat{p}$?", 
+         answer("[-100, -20]", correct = TRUE), 
+         answer("(-20, -10]"),
+         answer("(-10, -10)"), 
+         answer("(10, 20]"),
+         answer("(20, 100]", correct = TRUE),
+         allow_retry = TRUE, 
+         post_message = "Values of $\\Delta \\hat{p}$ larger than 18% and smaller than -18% are observed less than 5% of the time. They are therefore quite atypical if `G0` and `G1` are not associated to Ig1 levels."
+         )
+```
+
+### Assessing significance (III)
+
+Based on the previous graph, we can formulate the following rules:
+
+- If $|\Delta \hat{p}| < 18$, we can't conclude on differences between `G0` and `G1` and therefore on association between either genotype and either phenotype. 
+- If $\Delta \hat{p} < -18$, `G0` is **significantly** associated with `High` levels (and by symmetry `G1` is **significantly** associated with `Low` levels)
+- If $\Delta \hat{p} > 18$, `G0` is **significantly** associated with `Low` levels (and by symmetry `G0` is **significantly** associated with `High` levels)
+
+Given our sample size ($n = 100$) and our data set, we conclude in this example that there is no associations. 
+
+**Remark**: What we just did to find associations is called a *test of equality of proportions* and can be used in a much broader context. Formally and with our notation, we tried to compare the so-called *null hypothesis* $H_0: p_H^0 = p_H^1$ against the so-called *alternative hypothesis* $H_1: p_H^0 \neq p_H^1$ using $\Delta p = p_H^0 - p_H^1$. Since the true value of $\Delta p$, we *estimated* from the observations by means of $\Delta \hat{p}$. We then ran simulations to find the typical range of $\Delta \hat{p}$ under $H_0$ and look whether $\Delta \hat{p}$ fell in that range or not. Keep a few of those terms in mind, you'll meet them again next year...
+
+## Continuous phenotype
+
+We now assume that the phenotype is continuous and takes values in $\mathbb{R}$ (or $\mathbb{R}_+$ or some interval). No matter the nature of our phenotype, we still need to collect data. 
+
+We consider a population of $n = 100$ organisms. For each organism $i \in \{1, \dots\, n\}$, we measure its
+- phenotype $x_i$ (`Ig1` level): any value in $\mathbb{R}$
+- genotype $g_i$ (allele of gene `G`): `G0` or `G1`
+
+The data might look like this (first 10 organisms):
+
+```{r}
+knitr::kable(head(data_cont))
+```
+
+Since we're looking at continuous values, we need a different summary. Let's compute the *average* Ig1 level in each genotype. 
+
+```{r}
+with(data_cont, tapply(X = Phenotype, INDEX = Genotype, FUN = mean))
+```
+
+and have a look at the raw data
+
+```{r}
+boxplot(Phenotype ~ Genotype, data = data_cont, col = c("lightgreen", "lightblue"), 
+        outline = FALSE)
+with(data_cont, 
+     points(x = ifelse(Genotype == "G0", 1, 2) + rnorm(100, sd = 0.05), 
+            y = data_cont$Phenotype, 
+            pch = 19, cex = 0.8, 
+            col = ifelse(Genotype == "G0", "darkgreen", "darkblue"))
+     )
+```
+
+Note $\mu_0$ and $\mu_1$ the (unkown) average values for each genotype. Noting $\Delta \mu = \mu_0 - \mu_1$, we'd like to test $H_0: \Delta \mu = 0$ against $H_1: \Delta \mu \neq 0$ as before. 
+
+Once again, since we don't have access to the true values $\mu_0$ and $\mu_1$, we need to replace them by noisy versions $\hat{\mu}_0$ and $\hat{\mu}_1$ estimated from our dataset. 
+<!-- In this example, $\hat{\mu}_0 = 10.55$ and $\hat{\mu}_1 = 9.88$ -->
+
+```{r q6}
+quiz(caption = "Estimators", 
+     question("Pick the right value for $\\hat{\\mu)_0$", 
+              answer("9.88", message = "You may have mixed up `G0` and `G1`"), 
+              answer("10.55", TRUE), 
+              answer("0.67"), 
+              answer("-0.67"), 
+              random_answer_order = TRUE, 
+              allow_retry = TRUE), 
+     question("Pick the right value for $\\hat{\\mu)_1$", 
+              answer("10.55", message = "You may have mixed up `G0` and `G1`"), 
+              answer("9.88", TRUE), 
+              answer("0.67"), 
+              answer("-0.67"), 
+              random_answer_order = TRUE, 
+              allow_retry = TRUE), 
+     question("Pick the right value for $\\Delta \\hat{\\mu)$", 
+              answer("9.88"), 
+              answer("10.55"), 
+              answer("0.67", TRUE), 
+              answer("-0.67", message = "You may have mixed up `G0` and `G1`"), 
+              random_answer_order = TRUE, 
+              allow_retry = TRUE) 
+     )
+```
+
+### Comparing means 
+
+Our best estimate of $\Delta \mu$ from the data is $\Delta \hat{\mu} = 0.67$. We'll use the same procedure as before to asses if this value is small and typical under $H_0$ (in the sense that we're likely to observe on real data sets if $\Delta \mu = 0$) or large and atypical under $H_0$ (in the sense that we're unlikely to observe on real data sets if $\Delta \mu = 0$). 
+
+In our data set, we have:
+- $n_0 = 49$
+- $n_1 = 51$ 
+- $\hat{\mu} = 10.21$ (average over organisms from both genotypes, assuming $\Delta \mu = 0$). 
+
+To repeat the procedure used in the discrete setting, we need to create fake data sets with 49 organisms from `G0`, 51 from `G1` and all phenotypes sampled from the same distribution (\emph{i.e.} independently of the genotype). Unlike the discrete setting, where the value was either `Low` or `High`, the value can be any number here so we need to specify a proper probability distribution on $\mathbb{R}$. We'll use the famous gaussian distribution. 
+
+```{r, fig.width=4.14, fig.height=4}
+par(xpd = TRUE, mar = c(2, 2, 2, 2))
+curve(dnorm, from = -3, to = 3, main = "Gaussian density", 
+      axes = FALSE, xlab = NA, ylab = NA)
+abline(h = 0, v = 0)
+points(0, 0, pch = 19)
+text(x = 0, y = 0, labels = expression(mu), pos = 1, cex = 2)
+arrows(x0 = -1, x1 = 1, y0 = dnorm(1), code = 3, length = 0.1, lwd = 2)
+text(x = 0, y = dnorm(1), pos = 3, cex = 2, labels = expression(2*sigma))
+```
+
+The gaussian distribution has two parameters: 
+- a mean $\mu$ that we can set equal to $\hat{\mu} = 10.21$
+- a variance $\sigma^2$. 
+
+We can estimate $\sigma^2$ in one step from the whole dataset, or in two steps from each genotypes first and then pool the results. For reasons that will be much clearer next year when you study gaussian variables adn the $t-test$, it's smarter to use the two-steps estimator. 
+
+- The variance in genotype `G0` is $\hat{\sigma}^2_0 = 1.02$
+- The variance in genotype `G1` is $\hat{\sigma}^2_1 = 1.15$
+- The pooled variance is $\hat{\sigma}^2 = \frac{(n_0 - 1)\hat{\sigma}^2_0 + (n_1 - 1)\hat{\sigma}^2_1}{n_0 + n_1 - 2} = 1.09$
+
+Compare that the one-step estimator $\hat{\sigma}^2 = 1.13$ computed directly on the whole population. 
+
+**Remarks** Note that $\hat{\sigma}^2$ is nothing but a weighted average of $\hat{\sigma}^2_0$ and $\hat{\sigma}^2_1$. The weights are not exactly $n_0$ and $n_1$ for reasons that would hard to understand right now but will make sense next year. 
+
+
+We can now create many fake data sets using `create_fake_cont()`. Run the function several times to get a feeling of the typical values. 
+
+```{r create_fake_cont_setup}
+create_fake_cont <- function() {
+  data <- data.frame(
+    Organism  = 1:100, 
+    Genotype  = rep(c("G0", "G1"), times = c(49, 51)), 
+    Phenotype = rnorm(100, mean = 10.21, sd = 1.08))
+  deltamu <- diff(with(data, tapply(X = Phenotype, INDEX = Genotype, FUN = mean)))
+  cat(paste0("Delta mu = ", round(deltamu, digits = 2)))
+  invisible(deltamu)
+}
+```
+
+```{r create_fake_cont, exercise = TRUE}
+create_fake_cont()
+```
+
+Compare (mentally) the value $\Delta \hat{\mu}$ computed on the original data set to the range of values computed on those fake data sets. 
+
+```{r q7}
+question("Would you say that $\\Delta \\hat{\\mu}$ is", 
+         answer("Within the range", correct = TRUE), 
+         answer("Outside of the range", correct = FALSE), 
+         post_message = "$\\Delta \\hat{\\mu}$=0.67 is outside the range: we need to be lucky to observe greater values."
+         )
+```
+
+### Assessing significance (II)
+
+The fake datasets from the previous section informed us that, **when there are no differences between `G0` and `G1`**, it's quite uncommon to observe values of $\Delta \hat{\mu}$ below -0.4 and above 0.4 (see graph, based on 400 calls to `create_fake_cont()`). $\Delta \hat{\mu} = 0.67$ is therefore quite atypical and very unlikely to be observed by chance if $\Delta \mu=0$ is true. Among the 400 data sets simulated under $H_0$, only 1 resulted in a value $\Delta \hat{\mu}$ larger than 0.67. 
+
+```{r results='hide'}
+set.seed(1)
+values <- replicate(expr = create_fake_cont(), n = 400)
+hist(values, main = NULL, xlab = expression(Delta*hat(mu)~from~fake~samples), 
+     freq = TRUE, breaks = 40)
+abline(v = 0.67, col = "red")
+text(x = 0.67, y = 30, font = 2, col = "red", expression(Delta*hat(mu)==0.67), adj = c(1, 0.5))
+```
+
+```{r q8}
+question("Based on the previous graph, what ranges of values would you consider atypical for $\\Delta \\hat{\\mu}$?", 
+         answer("<-0.4", correct = TRUE), 
+         answer("[-0.4, -0.2)"),
+         answer("[-0.2, 0.2]"), 
+         answer("(0.2, 0.4]"),
+         answer(">0.4", correct = TRUE),
+         allow_retry = TRUE, 
+         post_message = "Values of $\\Delta \\hat{\\mu}$ larger than 0.42 and smaller than -0.42 are observed less than 5% of the time. They are therefore quite atypical if `G0` and `G1` are the same average Ig1 level."
+         )
+```
+
+### Assessing significance (III)
+
+Given our sample size ($n = 100$) and our data set, we conclude in this example that `G0` is associated to higher Ig1 levels but we were able to formalize our intuition. 
+
+**Remark**: What we just did to find associations is called a *test of equality of means* and can be used in a much broader context. When the phenotypes have a Gaussian distribution, we don't actually need to generate fake data sets as we have access to analytical formula to calibrate the range of typical/atypical values. This is much cheaper from a computational point of view and very useful when you're looking at very atypical values. You'll again study this in more details next year. 
+
+## Towards Interval Mapping 
+
+In the previous section, we presented the principle of association-testing in simple settings. We built rules to help us decide whether a loci was siginificantly associated to a phenotypic response. 
+
+In this section, we go further and quantify the evidence supporting this association. To do so, we need to compute and compare two quantities:
+- the probability of observing our datset under $H_0$ (*i.e* if there is no effect of $G$ on Ig1 levels)
+- the probability of observing our datset under $H_1$ (*i.e* if there is an effect of $G$ on Ig1 levels)
+
+For ease of exposition, we'll focus on the continuous setting and introduce the concepts of **likelihood** and **odds-ratio**. 
+
+### Gaussian density
+
+When comparing the average Ig1 levels under genotype `G0` and `G1`, we assumed that the phenotypes followed a gaussian distribution:
+- with mean $\mu_0$ and variance $\sigma^2$ for genotype `G0`
+- with mean $\mu_1$ and variance $\sigma^2$ for genotype `G1`
+
+```{r}
+par(xpd = TRUE, mar = c(2, 2, 2, 2))
+curve(dnorm(x, mean = 0.5), 
+      from = -4, to = 4, main = "Gaussian density for G0 and G1", 
+      axes = FALSE, xlab = NA, ylab = NA, col = "lightgreen", 
+      lwd = 3)
+curve(dnorm(x, mean = 0.0), add = TRUE, col = "lightblue", lwd = 3)
+abline(h = 0)
+abline(v = 0.5, col = "lightgreen", lty = 2, lwd = 3)
+points(0.5, 0, pch = 19, col = "lightgreen")
+text(x = 0.5, y = 0, labels = expression(mu[0]), adj = c(0, 1), cex = 2, col = "lightgreen")
+abline(v = 0, col = "lightblue", lty = 2, lwd = 3)
+points(0, 0, pch = 19, col = "lightblue")
+text(x = 0, y = 0, labels = expression(mu[1]), adj = c(1, 1), cex = 2, col = "lightblue")
+arrows(x0 = -0.5, x1 = 1.5, y0 = dnorm(1), code = 3, length = 0.1, lwd = 2)
+text(x = 0.5, y = dnorm(1), pos = 3, cex = 2, labels = expression(2*sigma))
+text(x = 4, y = 0, labels = "Phenotype", pos = 1)
+```
+
+A gaussian variable $X$ with mean $\mu$ and variance $\sigma^2$ is noted $X \sim \mathcal{N}(\mu, \sigma^2)$ and has density:
+$$
+f_{\mu,\sigma^2}(x) = \frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(x - \mu)^2}{2\sigma^2}}
+$$
+The formula may look daunting at first but it corresponds to a bell-shaped curve (like the two shown above). A few important points: 
+- the density is unimodal (it has a unique maximum) at $x=\mu$ 
+- the density goes to $0$ when $|x|$ goes to $\infty$. 
+- the spread of the density is proportional to $\sigma$. 
+
+Informally, the density tells us what values of $X$ we're likely to observe. For any interval of infinitesimal length $dx$:
+$$
+\mathbb{P}(X \in [x, x+dx]) = f_{\mu,\sigma^2}(x) dx
+$$
+
+```{r q9}
+quiz(caption = "Properties of gaussian densities", 
+     question(
+       "Are you more likely to observe values of X", 
+       answer("Close to $\\mu$$", correct = TRUE), 
+       answer("Far from $\\mu$$", correct = FALSE), 
+       random_answer_order = TRUE, allow_retry = TRUE,
+       post_message = "Since the density is highest closer to $\\mu$, you're more likely to observe values close to $\\mu$." 
+       ), 
+     question(
+       "When $\\sigma$ increases, the range of values you're likely to observe", 
+       answer("increases", correct = TRUE), 
+       answer("decreases", correct = FALSE), 
+       random_answer_order = TRUE, allow_retry = TRUE,
+       post_message = "When $\\sigma$ increases, the spread of the density increases. The range of value with relatively high density (the ones you're likely to observe) therefore increases." 
+     )
+)
+```
+
+### Likelihood function
+
+If we have **independent** variables $X_1$ and $X_2$ with means $\mu_1$ and $\mu_2$ and identical variance $\sigma^2$, we have a similar formula:
+$$
+\mathbb{P}(X_1 \in [x_1, x_1+dx_1]; X_2 \in [x_2, x_2+dx_2]) = \mathbb{P}(X_1 \in [x_1, x_1+dx_1])\mathbb{P}(X_2 \in [x_2, x_2+dx_2]) = 
+f_{\mu_1,\sigma^2}(x_1)f_{\mu_2,\sigma^2}(x_2)dx_1 dx_2
+$$
+
+This formula generalizes to an arbitrary number $n$ of independent variables. It also reveals a strong connection between *Probability of observation* and *density function*. Let's formalize this idea with the **likelihood function**. 
+
+Consider a set of $n$ independent observations $(x_1, \dots, x_n)$ from gaussian variables $\mathcal{N}(\mu, \sigma^2)$. The **likelihood** of $(x_1, \dots, x_n)$
+
+$$
+L(x_1, \dots, x_n; \mu, \sigma) = f_{\mu,\sigma^2}(x_1) \times \dots \times f_{\mu,\sigma^2}(x_n) = \prod_{i=1}^n f_{\mu,\sigma^2}(x_i)
+$$
+
+Up to an irrelevant infinitisemal multiplicative factor, $L(x_1, \dots, x_n; \mu, \sigma)$ is the **probability of observing $(x_1, \dots, x_n)$ when sampling $n$ independent gaussian variables $\mathcal{N}(\mu, \sigma^2)$.**
+
+**Remark:** Since $(x_1, \dots, x_n)$ depend only on the data, we often only consider $L$ as a function of $\mu$ and $\sigma$. Furthermore and since $L$ is a product of many small terms, it is often more convenient in practice to compute and work with the log-likelihood rather than with the likelihood. 
+
+### Likelihood under $H_0$
+
+Under $H_0$, all observations come from the same distribution $\mathcal{N}(\mu, \sigma^2)$. We don't know the true values of $\mu$, $\sigma^2$ but we can nevertheless compute the log-likelihood $L_{H_0}$ of our observations for test values. 
+
+```{r likelihood_h0_setup}
+log_likelihood_H0 <- function(mu = 10, sigma = 1) {
+  sum(dnorm(data_cont$Phenotype, mean = mu, sd = sigma, log = TRUE))
+}
+```
+
+Using `log_likelihood_H0()`, we can try to find a combination of parameters that maximizes the (log-)likelihood. 
+
+```{r log_likelihood_h0, exercise = TRUE}
+log_likelihood_H0(mu = 10, sigma = 1)
+log_likelihood_H0(mu = 15, sigma = 5)
+```
+
+**Remark**: This is of course a maximisation problem. The optimal values $\hat{\mu}$ and $\hat{\sigma}$ can be found by setting the partial derivatives $\frac{\partial L(\mu, \sigma)}{\partial \mu}$ and $\frac{\partial L(\mu, \sigma)}{\partial \sigma}$ to $0$ and solving the equations for $\mu$ and $\sigma$. If you're brave enough, you can do that (working with the log-likelihood makes derivations much easier) and find the exact relation between $\hat{\mu}, \hat{\sigma}$ and $(x_1, \dots, x_n)$. 
+
+We look at the whole curve $(\mu, \sigma) \mapsto L_{H_0}(\mu, \sigma)$ using a contour plot. Dark colors correspond to high values of $L_{H_0}$ and light colors colors to low values and levels of the function are shown as blacks contour. 
+
+```{r fig.width=4.14, fig.height=3.73}
+f <- Vectorize(log_likelihood_H0)
+x <- seq(5, 15, length.out = 101)
+y <- seq(0.8, 1.4, length.out = 101)
+z <- outer(x, y, 
+           FUN = function(x, y) {f(mu = x, sigma = y)}
+)
+par(mar = c(4, 4, 2.5, 1))
+image(x, y, z, 
+      xlab = expression(mu), 
+      ylab = expression(sigma), 
+      main = expression(logL[H[0]](mu, sigma)))
+contour(x, y, z, levels = c(-200, seq(-300, by = -300, length.out = 5)), add = TRUE)
+points(x = 10.21, y = 1.13, pch = 19, col = "white")
+segments(x0 = 10.21, y0 = 0, y1 = 1.13, lty = 2, col = "white")
+text(x = 10.21, y = 1, labels = expression(hat(mu)==10.21), pos = 4, col = "white")
+segments(x0 = 5, x1 = 10.21, y0 = 1.13, lty = 2, col = "white")
+text(x = 7, y = 1.13, labels = expression(hat(sigma)==1.13), pos = 3, col = "white")
+```
+
+The log-likelihood is maximized for $\hat{\mu} = 10.21$ and $\hat{\sigma} = 1.13$. Do those values remind you of something? 
+
+For illustrative purpose, we also look at the transect $\mu \mapsto L_{H_0}(\mu, \sigma)$ for $\sigma = \hat{\sigma} = 1.13$. 
+
+```{r}
+par(mar = c(4.3, 4.3, 1, 1), xpd = FALSE)
+f <- Vectorize(log_likelihood_H0, vectorize.args = "mu")
+curve(f(mu = x, sigma = 1.13), from = 5, to = 15,
+      xlab = expression(mu),
+      ylab = expression(logL[H[0]](mu,sigma==1.13)))
+abline(v = 10.21, lty = 2)
+text(x = 10.21, y = -1100, labels = expression(hat(mu)==10.21),
+     pos = 4)
+```
+
+We call $L_{H_0}(\hat{\mu}, \hat{\sigma})$ the **likelihood of $H_0$**. 
+
+### Likelihood under $H_1$
+
+We can do the same thing under $H_1$ with a a few notable differences. 
+- there are now **two** distributions $\mathcal{N}(\mu_0, \sigma^2)$ and $\mathcal{N}(\mu_1, \sigma^2)$
+- the log-likelihood should treat organisms with genotype `G0` and `G1` separately. 
+
+We thus consider the following function
+
+$$
+L_{H_1}(x_1, \dots, x_n; \mu_0, \mu_1, \sigma) = \prod_{i:g_i = G0} f_{\mu_0,\sigma^2}(x_i) \prod_{i: g_i = G1} f_{\mu_1,\sigma^2}(x_i)
+$$
+
+```{r q10}
+question("How are the 100 organisms split across the 2 products?",
+         answer("49 / 51", correct = TRUE), 
+         answer("50 / 50", message = "Really? How many organisms with genotype `G0` do we have."), 
+         answer("51 / 49", message = "Maybe you mixed up `G0` and `G1`"), 
+         allow_retry = TRUE, random_answer_order = TRUE)
+```
+
+Again, we don't know the true values of $\mu_0$, $\mu_1$ and $\sigma^2$ but we can nevertheless compute the log-likelihood $L_{H_1}$ of our observations for test values and try to maximize it. 
+
+```{r likelihood_h1_setup}
+log_likelihood_H1 <- function(mu0 = 10, mu1 = 10, sigma = 1) {
+  with(data_cont, 
+       sum(dnorm(Phenotype[Genotype == "G0"], mean = mu0, sd = sigma, log = TRUE)) + 
+         sum(dnorm(Phenotype[Genotype == "G1"], mean = mu1, sd = sigma, log = TRUE))
+  )
+}
+```
+
+```{r log_likelihood_h1, exercise = TRUE}
+log_likelihood_H1(mu0 = 10, mu1 = 10, sigma = 1)
+log_likelihood_H1(mu0 = 15, mu1 = 15, sigma = 5)
+```
+
+**Remark**: This is again of course a maximisation problem that you can solve by setting the partial derivatives to $0$ if you're brave enough.  
+
+We look at the whole curve $(\mu_0, \mu_1) \mapsto L_{H_1}(\mu_0, \mu_1, \sigma)$ for $\sigma = 1.08$ (value found in the previous section) using a contour plot. Dark colors correspond to high values of $L_{H_1}$ and light colors colors to low values and levels of the function are shown as blacks contour. 
+
+```{r fig.width=4.14, fig.height=3.73}
+f <- Vectorize(log_likelihood_H1, vectorize.args = c("mu0", "mu1"))
+x <- seq(5, 15, length.out = 101)
+y <- seq(5, 15, length.out = 101)
+z <- outer(x, y, 
+           FUN = function(x, y) {f(mu0 = x, mu1 = y, sigma = 1.08)}
+)
+par(mar = c(4, 4, 2.5, 1))
+image(x, y, z, 
+      xlab = expression(mu[0]), 
+      ylab = expression(mu[1]), 
+      main = expression(logL[H[1]](mu[0], mu[1], sigma==1.08)))
+contour(x, y, z, add = TRUE)
+points(x = 10.55, y = 9.88, pch = 19, col = "white")
+segments(x0 = 10.55, y0 = 5, y1 = 9.88, lty = 2, col = "white")
+text(x = 10.55, y = 9, labels = expression(hat(mu)[0]==10.55), pos = 4, col = "white")
+segments(x0 = 5, x1 = 10.55, y0 = 9.88, lty = 2, col = "white")
+text(x = 9, y = 9.88, labels = expression(hat(mu)[1]==9.88), 
+     pos = 3, col = "white")
+```
+
+The log-likelihood is maximized for $\hat{\mu}_0 = 10.55$ and $\hat{\mu}_1 = 9.88$. 
+
+**Remark** Since it's very hard to show the map $(\mu_0, \mu_1, \sigma) \mapsto L_{H_1}(\mu_0, \mu_1, \sigma)$, I cheated and directly plugged in he optimal value of $\sigma$. 
+
+We call $L_{H_1}(\hat{\mu}_0, \hat{\mu}_1, \hat{\sigma})$ the **likelihood of $H_1$**. 
+
+### Log of Odds Ratio (LOD)
+
+We're now ready to compute the evidence in favor of $H_1$ (versus $H_0$). We call it the *LOD score* (or *Log of Odds Ratio score*) and define it as 
+
+$$
+LOD = \log_{10}\left( \frac{L_{H_1}(\hat{\mu}_0, \hat{\mu}_1, \hat{\sigma})}{L_{H_0}(\hat{\mu}, \hat{\sigma})} \right)
+$$
+
+Note that there is a slight abuse of notation here as the $\hat{\sigma}$ in the numerator ($\hat{\sigma}=1.08$) is not the same as the one in the denominator ($\hat{\sigma}=1.13$). 
+
+As stated in (Lander and Botstein (1989))[https://www.genetics.org/content/121/1/185], the LOD score *essentially indicates how much  more  probable the data are to have arisen assuming the presence of a QTL [read $H_1: \Delta \mu \neq 0$] than assuming its absence [read $H_1: \Delta \mu = 0$].*
+
+
+
+
+
