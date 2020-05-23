@@ -31,20 +31,20 @@ The goal of these tutorials is to help you understand the basics of genetic asso
 
 ## Simple Marker Analyses
 
-We're interested in the possible association between a *phenotype* (say `Ig1` levels) and a  *genotype* (say gene `G` with two alleles `G0` and `G1`). Assume for now for simplicity that:
+We're interested in the possible association between a *phenotype* (say `IgG1` levels) and a  *genotype* (say gene `G` with two alleles `G0` and `G1`, or `LEW` and `BN`). Assume for now for simplicity that:
 - gene `G` was selected based on expert knowledge (or previous results from the literature). 
 - you work with haploid organisms so that each organism only has *one* copy of gene `G`. 
 
 **Remark:** The haploid assumption is convenient but of course slightly unrealistic. It's however reasonable when we work with organisms with organisms from highly inbred lineages (such as Lewis and BN mices) where both copies of the chromosomes are almost identicial. We can also lift the assumption to accomodate diploidy but we then need to specify whether your gene has *dominant*, *additive* or *recessive* effect. We'll ignore it for now. 
 
-We can rephrase the association study as the following question **"Are Ig1 levels different in organisms with alleles `G0` and `G1`?"**. We'll try to answer that question step-by-step. 
+We can rephrase the association study as the following question **"Are IgG1 levels different in organisms with alleles `G0` and `G1`?"**. We'll try to answer that question step-by-step. 
 
 ## Discrete phenotype
 
 We assume first (again for simplicity) that the phenotype is discrete and takes only two values: `low` and `high`. To answer our question, we need to collect data first. 
 
 We consider a population of $n = 100$ organisms. For each organism $i \in \{1, \dots\, n\}$, we measure its 
-- phenotype $x_i$ (`Ig1` level): `high` or `low`
+- phenotype $x_i$ (`IgG1` level): `high` or `low`
 - genotype $g_i$ (allele of gene `G`): `G0` or `G1`
 
 The data might look like this (first 10 organisms):
@@ -63,21 +63,21 @@ To make we read the table correctly, let's answer a few questions:
 
 ```{r q1}
 question(
-  "What's the proportion $p_H^0$ of `High` Ig1 levels among `G0` organisms?",
+  "What's the proportion $p_H^0$ of `High` IgG1 levels among `G0` organisms?",
   answer("$p_H^0 = 0.51$", correct = TRUE),
   answer("$p_H^0 = 0.50$", correct = FALSE, message = "Compute carefully the number of `G0` organisms"),
   allow_retry = TRUE,
-  post_message = "This a double entry table. There are 25 `G0` organisms with `High` Ig1 levels and 24 `G0` organisms with `Low` Ig1 levels. In total there are 24+25=49 `G0` organisms, of which a proportion 25/49=0.51 have `High` Ig1 levels."
+  post_message = "This a double entry table. There are 25 `G0` organisms with `High` IgG1 levels and 24 `G0` organisms with `Low` IgG1 levels. In total there are 24+25=49 `G0` organisms, of which a proportion 25/49=0.51 have `High` IgG1 levels."
 )
 ```
 
 ```{r q2}
 question(
-  "What's the proportion $p_H^1$ of `High` Ig1 levels among `G1` organisms?",
+  "What's the proportion $p_H^1$ of `High` IgG1 levels among `G1` organisms?",
   answer("$p_H^1 = 0.0.49$", correct = TRUE),
   answer("$p_H^1 = 0.50$", correct = FALSE, message = "Compute carefully the number of `G1` organisms"),
   allow_retry = TRUE,
-  post_message = "This a double entry table. There are 25 `G0` organisms with `High` Ig1 levels and 26 `G0` organisms with `Low` Ig1 levels. In total there are 26+25=51 `G1` organisms, of which a proportion 25/51=0.49 have `High` Ig1 levels."
+  post_message = "This a double entry table. There are 25 `G0` organisms with `High` IgG1 levels and 26 `G0` organisms with `Low` IgG1 levels. In total there are 26+25=51 `G1` organisms, of which a proportion 25/51=0.49 have `High` IgG1 levels."
 )
 ```
 
@@ -96,7 +96,7 @@ text(x = c(0.7, 1.9), y = 1, labels = "Low", adj = c(0.5, 0), col = "white")
 
 In this toy dataset, there are 51% of `High` levels among `G0` organisms and 49% among `G1` organisms. The difference is $\Delta \hat{p} = \hat{p}_H^0 - \hat{p}_H^1 = $ 2%. 
 
-Based on those results, we might be tempted to conclude that allele $G_0$ increases Ig1 levels. A tiny problem is that we don't known whether $\Delta \hat{p} = $ 2% is that big of a difference. After all, if two of our organisms with `Low` levels had been `G0` instead of `G1`, the results would have been quite different...
+Based on those results, we might be tempted to conclude that allele $G_0$ increases IgG1 levels. A tiny problem is that we don't known whether $\Delta \hat{p} = $ 2% is that big of a difference. After all, if two of our organisms with `Low` levels had been `G0` instead of `G1`, the results would have been quite different...
 
 ```{r q3}
 question(
@@ -168,7 +168,7 @@ question("Based on the previous graph, what ranges of values would you consider 
          answer("(10, 20]"),
          answer("(20, 100]", correct = TRUE),
          allow_retry = TRUE, 
-         post_message = "Values of $\\Delta \\hat{p}$ larger than 18% and smaller than -18% are observed less than 5% of the time. They are therefore quite atypical if `G0` and `G1` are not associated to Ig1 levels."
+         post_message = "Values of $\\Delta \\hat{p}$ larger than 18% and smaller than -18% are observed less than 5% of the time. They are therefore quite atypical if `G0` and `G1` are not associated to IgG1 levels."
          )
 ```
 
@@ -189,7 +189,7 @@ Given our sample size ($n = 100$) and our data set, we conclude in this example 
 We now assume that the phenotype is continuous and takes values in $\mathbb{R}$ (or $\mathbb{R}_+$ or some interval). No matter the nature of our phenotype, we still need to collect data. 
 
 We consider a population of $n = 100$ organisms. For each organism $i \in \{1, \dots\, n\}$, we measure its
-- phenotype $x_i$ (`Ig1` level): any value in $\mathbb{R}$
+- phenotype $x_i$ (`IgG1` level): any value in $\mathbb{R}$
 - genotype $g_i$ (allele of gene `G`): `G0` or `G1`
 
 The data might look like this (first 10 organisms):
@@ -198,7 +198,7 @@ The data might look like this (first 10 organisms):
 knitr::kable(head(data_cont))
 ```
 
-Since we're looking at continuous values, we need a different summary. Let's compute the *average* Ig1 level in each genotype. 
+Since we're looking at continuous values, we need a different summary. Let's compute the *average* IgG1 level in each genotype. 
 
 ```{r}
 with(data_cont, tapply(X = Phenotype, INDEX = Genotype, FUN = mean))
@@ -334,13 +334,13 @@ question("Based on the previous graph, what ranges of values would you consider 
          answer("(0.2, 0.4]"),
          answer(">0.4", correct = TRUE),
          allow_retry = TRUE, 
-         post_message = "Values of $\\Delta \\hat{\\mu}$ larger than 0.42 and smaller than -0.42 are observed less than 5% of the time. They are therefore quite atypical if `G0` and `G1` are the same average Ig1 level."
+         post_message = "Values of $\\Delta \\hat{\\mu}$ larger than 0.42 and smaller than -0.42 are observed less than 5% of the time. They are therefore quite atypical if `G0` and `G1` are the same average IgG1 level."
          )
 ```
 
 ### Assessing significance (III)
 
-Given our sample size ($n = 100$) and our data set, we conclude in this example that `G0` is associated to higher Ig1 levels but we were able to formalize our intuition. 
+Given our sample size ($n = 100$) and our data set, we conclude in this example that `G0` is associated to higher IgG1 levels but we were able to formalize our intuition. 
 
 **Remark**: What we just did to find associations is called a *test of equality of means* and can be used in a much broader context. When the phenotypes have a Gaussian distribution, we don't actually need to generate fake data sets as we have access to analytical formula to calibrate the range of typical/atypical values. This is much cheaper from a computational point of view and very useful when you're looking at very atypical values. You'll again study this in more details next year. 
 
@@ -349,14 +349,14 @@ Given our sample size ($n = 100$) and our data set, we conclude in this example 
 In the previous section, we presented the principle of association-testing in simple settings. We built rules to help us decide whether a loci was siginificantly associated to a phenotypic response. 
 
 In this section, we go further and quantify the evidence supporting this association. To do so, we need to compute and compare two quantities:
-- the probability of observing our datset under $H_0$ (*i.e* if there is no effect of $G$ on Ig1 levels)
-- the probability of observing our datset under $H_1$ (*i.e* if there is an effect of $G$ on Ig1 levels)
+- the probability of observing our datset under $H_0$ (*i.e* if there is no effect of $G$ on IgG1 levels)
+- the probability of observing our datset under $H_1$ (*i.e* if there is an effect of $G$ on IgG1 levels)
 
 For ease of exposition, we'll focus on the continuous setting and introduce the concepts of **likelihood** and **odds-ratio**. 
 
 ### Gaussian density
 
-When comparing the average Ig1 levels under genotype `G0` and `G1`, we assumed that the phenotypes followed a gaussian distribution:
+When comparing the average IgG1 levels under genotype `G0` and `G1`, we assumed that the phenotypes followed a gaussian distribution:
 - with mean $\mu_0$ and variance $\sigma^2$ for genotype `G0`
 - with mean $\mu_1$ and variance $\sigma^2$ for genotype `G1`
 
@@ -581,6 +581,6 @@ question("If we want the presence of a QTL to be 1000 times more probable than i
 ```
 
 
-
+In our data set, the LOD is $2.01$ and the effect of the QTL is $\Delta \hat{\mu} = 0.67$. It's quite small (the coefficient of variation $\frac{\Delta \hat{\mu}}{\hat{\mu}}  = \frac{0.67}{10.21} = 0.065$ or 6.5%) but nevertheless significant. 
 
 
