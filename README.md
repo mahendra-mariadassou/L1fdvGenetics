@@ -11,9 +11,15 @@ The goal of `L1fdvGenetics` is to provide interactive tutorials for the
 Genetics project. Tutorials are packaged so you can install them on you
 computer and do the exercices without access to an internet connection.
 
-## Installation
+## Installation (I)
 
-You first need to install **R** and **Rstudio** on your computer.
+You only need to perform each of the following steps **once**:
+
+  - installing **R**
+  - installing **Rstudio**
+  - installing **R** packages `remotes` and `learnr`
+
+However each of them may take some time.
 
 ### Installing R
 
@@ -53,29 +59,32 @@ Go to the
 [download](https://rstudio.com/products/rstudio/download/#download)
 page. Select, download and install the file corresponding to your OS.
 
-### Installing the tutorials
+### Installing R packages
 
-You can install the development version from
-[GitHub](https://github.com/) by launching Rstudio and typing the
-following command in the
-console:
+Launch Rstudio (by clicking on the corresponding icon) and execute the
+following commands in the console
 
 ``` r
-## You only need to install remotes the very first time you launch Rstudio.
-## If that's the case, uncomment the next line
-# install.packages("remotes") 
+install.packages("remotes") 
+install.packages("learnr") 
+```
+
+## Installation (II)
+
+You need to install the tutorials **every time** I update them
+(hopefully not too often)
+
+### Installing the tutorials
+
+You can install the tutorials from [GitHub](https://github.com/) by
+launching Rstudio and typing the following command in the console:
+
+``` r
 remotes::install_github("mahendra-mariadassou/L1fdvGenetics")
 ```
 
-<!-- If the installation of `devtools` fails, you may need to install some system dependencies (for example on ubuntu/debian): -->
-
-<!-- ```{bash, eval = FALSE} -->
-
-<!-- sudo apt-get install libxml2-dev libcurl4-openssl-dev libssl-dev -->
-
-<!-- ``` -->
-
-<!-- On Mac, you may need some of the compiling tools listed [here](https://cran.r-project.org/bin/macosx/tools/) -->
+The tutorials included in `L1fdvGenetics` are lightweight and have no
+dependencies. It should be quite fast and not consume a lot of data.
 
 ## Starting a tutorial
 
@@ -87,14 +96,16 @@ library(learnr)
 library(L1fdvGenetics)
 ```
 
-## Candidate gene (single marker) approach
+There are two tutorials in the package
+
+### Candidate gene (single marker) approach
 
 ``` r
 ## Launch only one tutorial at the time!!
 learnr::run_tutorial("01_candidate_gene", package = "L1fdvGenetics")
 ```
 
-## QTL detection by Simple Interval Mapping (SIM)
+### QTL detection by Simple Interval Mapping (SIM)
 
 ``` r
 ## Launch only one tutorial at the time!!
