@@ -1,0 +1,619 @@
+---
+title: "Interval Mapping"
+output: 
+  learnr::tutorial:
+    progressive: true
+    allow_skip: true
+    df_print: default
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+set.seed(2019)
+n <- 100
+Lineage <- sample(c("LEW", "BN"), size = n, replace = TRUE) 
+data <- data.frame(
+  Organism  = 1:n, 
+  Lineage   = Lineage, 
+  Marker_1  = ifelse(Lineage == "LEW", 0, 1), 
+  Marker_2  = ifelse(Lineage == "LEW", 0, 1), 
+  Marker_3  = ifelse(Lineage == "LEW", 0, 1),
+  Marker_4  = ifelse(Lineage == "LEW", 0, 1), 
+  Marker_5  = ifelse(Lineage == "LEW", 0, 1))
+data$IgG1 <- rnorm(n, 10, 1) + 0.5 * data$Marker_3
+checker <- function(label, user_code, check_code, envir_result, evaluate_result, ...) {
+  list(message = check_code, correct = TRUE, location = "append")
+}
+genetic_map <- data.frame(
+  Marker   = paste0("Marker_", 1:5), 
+  Location = c(0, 0.25, 0.5, 0.8, 1)
+)
+tutorial_options(exercise.timelimit = 60, exercise.checker = checker)
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Introduction
+
+In the previous tutorial, we used association analysis to assess whether or not a candidate gene was in fact a QTL. We assumed nice inbred populations and *a priori* knowledge of the candidate gene. Real life is of course much messier. 
+
+In many settings, we do have access to inbred lineages (here LEW and BN), selected to have divergent phenotypes (here high IgG1 levels for BN and low IgG1 levels for LEW) but we don't have a candidate gene in mind. Instead we have access to a **genetic map**, where many markers (called $M_1, \dots, M_p$ hereafter) are positioned on the genome, together with genetic distances (in centiMorgan) between markers. 
+
+**We would like to detect QTL using our two lineages and the genetic map**. 
+
+In more details, our objective is to locate and characterize genetic factors that influence quantitatively inherited traits, *i.e.*, those that are controlled by a few to many genes acting together to produce a phenotype. The basic outline of a QTL study is shown in the figure below (for plants, taken from [here](https://passel2.unl.edu/view/lesson/aa527da941e0)). In this lesson, we'll cover Steps 1 (especially why it's required) and step 4. 
+
+```{r echo = FALSE, fig.cap = "QTL analysis overview", fig.align='center'}
+knitr::include_graphics(path = "images/qtl_overview.gif")
+```
+
+You can also look at slides 13 and 14 of Magali's documents to get an overview with mice. 
+
+
+## Why cross parental lines?
+
+For simplicity, assume that all markers are biallelic (we'll note the two alleles $0$ and $1$). Since lineage LEW is inbred (and has been so for a long time), at each marker LEW mice are either all $0$ or all $1$. To make things easier, we assume that up to relabeling of the alleles, LEW mice have allele $0$ at **all** markers. 
+
+For simplicity again, assume that there is only one chromosome (so that all markers are on the same chromosome). This can be alleviated but at the cost of tedious notations. 
+
+### Understanding the problem
+
+Lineage BN is a inbred as lineage LEW. Therefore at each marker, BN mice either 
+
+- all have allele $0$ (the same as LEW) or 
+- all have allele $1$ (the other one)
+
+Markers for which LEW mice have allele $0$ and BN mice have $1$ are called **segregating** whereas the other one are **non segregating**. We focus *only* on segregating sites in our QTL detection analysis and discard the non segregating ones. 
+
+**Question:** How would you justify discarding the non-segregating markers? 
+
+We end up with data looking like:
+
+```{r}
+knitr::kable(head(data))
+```
+
+Since we don't have a candidate gene (or candidate marker in mind), we can just treat all markers as potential candidates and compute the LOD of each one in turn. The function `LOD()` allows you to do exactly that. 
+
+```{r lod_setup}
+logh0 <- function(x) { 
+ mu <- mean(x); sigma <- sd(x)
+ sum(dnorm(x, mean = mu, sd = sigma, log = TRUE))
+}
+logh1 <- function(x, y) { 
+ mu0 <- mean(x); mu1 <- mean(y)
+ sigma <- sqrt(((length(x) - 1)*var(x) + (length(y) - 1)*var(y)) / (length(x) + length(y) - 2))
+ sum(dnorm(x, mean = mu0, sd = sigma, log = TRUE)) + sum(dnorm(y, mean = mu1, sd = sigma, log = TRUE))
+}
+LOD_generic <- function(marker = c(paste0("Marker_", 1:5), "QTL"), data) {
+  geno <- data[ , match.arg(marker)]
+  pheno0 <- data[geno == 0, "IgG1"]
+  pheno1 <- data[geno == 1, "IgG1"]
+  lod <- (logh1(pheno0, pheno1) - logh0(c(pheno0, pheno1))) * log10(exp(1))
+  cat(paste0("LOD score for ", marker, ": ", lod))
+  invisible(lod)
+}
+LOD <- function(marker) { LOD_generic(marker, data = data)}
+```
+
+```{r lod, exercise = TRUE}
+LOD("Marker_3")
+```
+
+```{r q1}
+question("Based on the LOD scores, which marker is the most likely QTL?", 
+         answer("Marker_1"), 
+         answer("Marker_2"), 
+         answer("Marker_3"), 
+         answer("Marker_4"), 
+         answer("Marker_5"), 
+         answer("None of the above", correct = TRUE),
+         allow_retry = TRUE, 
+         post_message = "All markers have exactly the same LOD scores, so you can't use it to discriminate between the markers and there's no *most likely* QTL."
+         )
+```
+
+### Linkage Desequilibrium 
+
+Because the lineages LEW and BN are so inbred, the markers are in strong *Linkage Desequilibrium* (LD): knowing the allele at marker 1 give a nearly perfect information on the alleles of markers 2 to 5. Indeed, all alleles of a mice are either simultaneously $0$ (if the mice is LEW) or $0$ (if the mice is BN). 
+
+In statistical terms, the markers are **confounded** with the lineages: we can't distinguish between the two. We therefore need to break the linkage between all markers. That's why we need backcrosses between LEW and BN mices. 
+
+In real-life mice populations, we would need to breed F2 individuals. In our simplified model (where mice are haploid), we assume that F1 individuals already have a chrosomome which is a mix between the two parents' chromosomes as shown below. 
+
+```{r fig.width=4.14, fig.height=3.8, fig.cap = "Haplotype of a F1 mice from a LEW $\\times$ BN cross. A crossover took place between $M_3$ and $M_4$"}
+par(mar = c(4, 4, 2, 1))
+plot_data <- data.frame(
+  Marker = 1:5,
+  LEW    = rep(0, 5), 
+  BN     = rep(1, 5), 
+  F1     = c(0, 0, 0, 1, 1)
+)
+plot(LEW ~ Marker, data = plot_data, type = "o", pch = 19, 
+     col = "grey50",
+     ylim = c(-0.2, 1.2), 
+     yaxt = "n", 
+     ylab = "Allele")
+text(x = 3, y = 0, labels = "LEW parent", pos = 1, col = "grey50")
+lines(BN ~ Marker, data = plot_data, type = "o", pch = 19, col = "black")
+text(x = 3, y = 1, labels = "BN parent", pos = 3, col = "black")
+lines(F1 ~ Marker, data = plot_data, type = "l", col = "darkred")
+text(x = 2.5, y = 0.5, labels = "F1 child", pos = 4, col = "darkred")
+axis(side = 2, at = c(0, 1))
+```
+
+The figure shows a single F1 chromosome but many others are possible, depending on the location of the mixing points (there can be more than one, see *F1 child 3* below). 
+
+```{r fig.width=4.14, fig.height=3.8, fig.cap =  "Haplotype of three F1 mice from a LEW $\\times$ BN cross. A crossover took place between $M_3$ and $M_4$ for child $1$ and between $M_2$ and $M_3$ for child $2$. Two crossovers (between $M_1$ and $M_2$ and between $M_4$ and $M_5$) took place for child 3"}
+par(mar = c(4, 4, 2, 1))
+plot_data <- data.frame(
+  Marker = 1:5,
+  LEW    = rep(0, 5), 
+  BN     = rep(1, 5), 
+  F1_1     = c(0, 0, 0, 1, 1),
+  F1_2     = c(1, 1, 0, 0, 0),
+  F1_3     = c(1, 0, 0, 0, 1)
+)
+plot(LEW ~ Marker, data = plot_data, type = "o", pch = 19, 
+     col = "grey50",
+     ylim = c(-0.2, 1.2), 
+     yaxt = "n", 
+     ylab = "Allele")
+text(x = 3, y = 0, labels = "LEW parent", pos = 1, col = "grey50")
+lines(BN ~ Marker, data = plot_data, type = "o", pch = 19, col = "black")
+text(x = 3, y = 1, labels = "BN parent", pos = 3, col = "black")
+lines(F1_1 ~ Marker, data = plot_data, type = "l", col = "darkred")
+text(x = 4.5, y = 1, labels = "F1 child 1", pos = 1, col = "darkred")
+lines(0.5 + 0.95 * (F1_2 - 0.5) ~ Marker, data = plot_data, type = "l", col = "red", lty = 2)
+text(x = 1.5, y = 1, labels = "F1 child 2", pos = 1, col = "red")
+lines(0.5 + 0.90 * (F1_3 - 0.5) ~ Marker, data = plot_data, type = "l", col = "orange", lty = 3)
+text(x = 3.5, y = 0.0, labels = "F1 child 3", pos = 3, col = "orange")
+axis(side = 2, at = c(0, 1))
+```
+
+Each mixing point corresponds to a chromosomal crossover. The probability that the mixing point is located between marker $M_i$ and $M_j$ is proportional to the *genetic distance* between $M_i$ and $M_j$. The genetic distance is usually measured in centiMorgans (cM). A distance of 0.01 cM between $M_i$ and $M_j$ corresponds to an average of 0.01 crossover taking place between $M_i$ and $M_j$. In practice, you can think of this as 1% per chance of a crossover. 
+The *genetic map* gives you locations of the markers along the chromosomes (in Morgans). In our example we have:
+
+```{r}
+knitr::kable(genetic_map)
+```
+
+In particular, the distance is 25 cM (or 0.25 Morgans) between markers $M_1$ and $M_2$, 25 cM between $M_2$ and $M_3$, 30 cM between $M_3$ and $M_4$, etc. 
+
+You can sample the genetic make-up (*i.e* alleles at the 5 markers $M_1$ to $M_5$, also called **haplotype**) of $n$ $F_1$ children between a LEW and a BN parent using the `simulate_F1()` function. 
+
+```{r simulate_F1_setup}
+simulate_F1 <- function(n = 10, location = c(0, 0.25, 0.5, 0.8, 1)) {
+  start <- sample(c(0, 1), size = n, replace = TRUE)
+  n_co <- rpois(n = n, lambda = 1)
+  co_pos <- Vectorize(runif, vectorize.args = "n")(n = n_co)
+  # co <- Vectorize(rbinom, vectorize.args = "prob")(n = n, size = 1, prob = c(0.25, 0.25, 0.3, 0.2))
+  co <- sapply(co_pos, function(x) { 
+    tabulate(findInterval(x, vec = location), nbins = length(location)-1) 
+  })
+  res <- apply(cbind(start, t(co)), 1, function(x) {
+    paste0(cumsum(x) %% 2, collapse = "")
+  }
+  )
+  cat("Breeding 100 F1 mice:", sep = "\n")
+  res
+}
+```
+
+```{r simulate_F1, exercise = TRUE}
+simulate_F1(n = 10)
+```
+
+```{r q2}
+quiz(caption = "Recombination and crossover", 
+     question(
+       "Based on your observation, what's the most frequent pair of  haplotypes in the F1 population?", 
+       answer("11111 / 00000", correct = TRUE), 
+       answer("01111 / 10000", message = "Call `simulate_F1()` with a large value for $n$."), 
+       answer("00111 / 11000", message = "Call `simulate_F1()` with a large value for $n$."), 
+       answer("00011 / 11100", message = "Call `simulate_F1()` with a large value for $n$."), 
+       answer("00001 / 11110", message = "Call `simulate_F1()` with a large value for $n$."), 
+       allow_retry = TRUE, post_message = "Indeed, with the rules given above, the most likely haplotypes in the F1 population are the pure LEW and BN haplotypes. Their combined frequency is in fact 36.78%. In other words, they account for a bit more than one third of the F1 children's haplotypes."
+       ),
+     question(
+       "Assuming there is **exactly one** crossover, what's the most frequent pair of  haplotypes in the F1 population?", 
+       answer("01111 / 10000", message = "Call `simulate_F1()` with a large value for $n$ and discard LEW and BN haplotypes and all haplotypes with at least two crossovers."), 
+       answer("00111 / 11000", message = "Call `simulate_F1()` with a large value for $n$ and discard LEW and BN haplotypes and all haplotypes with at least two crossovers."), 
+       answer("00011 / 11100", correct = TRUE), 
+       answer("00001 / 11110", message = "Call `simulate_F1()` with a large value for $n$ and discard LEW and BN haplotypes and all haplotypes with at least two crossovers."), 
+       allow_retry = TRUE, post_message = "If there's exactly one crossover, it must happen between two consecutive markers. The most distant consecutive markers are $M_3$ and $M_4$, which are separated by 30 cM. The crossover is most likely to occur there, leading to haplotypes 00011 or 11100."
+     )
+)
+```
+
+**Remark** As you already know, the aforementioned crossover and mixing mechanisms between maternal and paternal chromosomes actually take place during meiosis. That why in real mice population, we need at least two generations (and thus F2 mices) to mix the LEW and BN haplotypes. 
+
+### LOD analysis on F1 
+
+Assume we breed 100 F1 mice as described previously to build a new dataset. 
+```{r results='hide'}
+set.seed(32)
+n <- 100
+data_F1 <- matrix(as.numeric(unlist(strsplit(simulate_F1(n = n, location = c(0, 0.25, 0.45, 0.5, 0.8, 1)), 
+                                             split = NULL))), 
+       ncol = 6, byrow = TRUE, 
+       dimnames = list(NULL, c(paste0("Marker_", 1:2), "QTL", paste0("Marker_", 3:5))))
+data_F1 <- data.frame(Organism = 1:n, 
+                      data_F1)
+data_F1$IgG1 <- with(data_F1, rnorm(n, 10, 1) + 0.5 * QTL)
+# set.seed(20)
+# n <- 100
+# data_F1 <- matrix(as.numeric(unlist(strsplit(simulate_F1(n = n), split = NULL))), 
+#        ncol = 5, byrow = TRUE, 
+#        dimnames = list(NULL, paste0("Marker_", 1:5)))
+# data_F1 <- data.frame(Organism = 1:n, 
+#                       data_F1)
+# data_F1$IgG1 <- with(data_F1, rnorm(n, 10, 1) + 0.5 * Marker_3)
+# LOD_F1("Marker_3")
+# colMeans(subset(data_F1, select = Marker_1:Marker_5))
+```
+
+```{r}
+knitr::kable(head(subset(data_F1, select = -QTL)))
+```
+
+```{r lod_f1_setup}
+LOD_F1 <- function(marker) { LOD_generic(marker, data = data_F1) }
+```
+
+We can use the function `LOD_F1()` to compute the LOD score of each marker on this new data set. 
+
+```{r lod_f1, exercise = TRUE}
+LOD_F1("Marker_1")
+```
+
+```{r q3}
+question("Based on the LOD scores on the F1 mice, which marker is the most likely QTL?", 
+         answer("Marker_1"), 
+         answer("Marker_2"), 
+         answer("Marker_3", correct = TRUE), 
+         answer("Marker_4"), 
+         answer("Marker_5"), 
+         answer("None of the above"),
+         allow_retry = TRUE, 
+         post_message = "Decoupling the markers through recombination and crossovers leads to stark differences in LOD scores. It's quite clear from the LOD scores that marker $M_3$ is the most likely QTL: it's the only one with a LOD score above 2."
+         )
+```
+
+**Remark** We can look look at the frequency of allele $1$ at each marker in both our data sets. 
+
+```{r fig.width = 6, fig.height=4}
+plot_data <- genetic_map
+plot_data$original <- colMeans(subset(data, select = Marker_1:Marker_5))
+plot_data$F1 <- colMeans(subset(data_F1, select = c(Marker_1:Marker_2, Marker_3:Marker_5)))
+par(mar = c(4, 4, 2, 1))
+plot(original ~ Location, data = plot_data, 
+     xlab = "Position along the chromosome (cM)", 
+     ylab = "Frequency of allele 1", 
+     type = "o", pch = 19, col = "grey50", 
+     xaxt = "n")
+text(x = 0.9, y = 0.47, labels = "LEW/BN\ndata set", pos = 1, col = "grey50")
+points(F1 ~ Location, data = plot_data, 
+       type = "o", pch = 19, col = "black")
+text(x = 0.9, y = 0.50, labels = "F1 data\nset", pos = 3, col = "black")
+points(F1 ~ Location, data = plot_data, 
+       type = "o", pch = 19, col = "black")
+axis(side = 1, 
+     at = plot_data$Location, 
+     labels = paste0("Marker_", 1:5), 
+     cex.axis = 1)
+```
+
+The frequency of allele $1$ is very similar for all markers, so why are the LOD scores so different? It turns out that the frequency of allele $1$ is important but so is its distribution **across** mice. If we look at the haplotypes of all mice, linkage is much less of a problem in F1 mice (right) than in LEW/BN mice (left). 
+
+```{r fig.width = 6, fig.height=4, fig.cap = "Haplotypes of all mice in each data set. Allele $0$ is coded in black and allele $1$ in grey. Each mice corresponds to a row."}
+par(mfrow = c(1, 2))
+image(x = 1:5, y = 1:100, 
+      z = t(data.matrix(subset(data, select = Marker_1:Marker_5))), 
+      col = c("black", "grey60"), xlab = "Marker", ylab = "Mice", 
+      xaxt = "n", main = "LEW/BN data set")
+abline(v = 0.5 + 1:4, col = "grey80")
+axis(side = 1, at = 1:5, labels = paste0("Marker_", 1:5), cex.axis = 0.7)
+image(x = 1:5, y = 1:100, 
+      z = t(data.matrix(subset(data_F1, select = c(Marker_1:Marker_2, Marker_3:Marker_5)))), 
+      col = c("black", "grey60"), xlab = "Marker", ylab = "Mice", 
+      xaxt = "n", main = "F1 data set"
+      )
+abline(v = 0.5 + 1:4, col = "grey80")
+axis(side = 1, at = 1:5, labels = paste0("Marker_", 1:5), cex.axis = 0.7)
+```
+
+**Remark** The LOD score of 2.59 found for $M_1$, $M_2$, $M_4$ and $M_5$ in the LEW/BN data set is not an error. There is a statistical association between $M_1$ and IgG1 levels in the LEW/BN set, even though $M_1$ is not a QTL (as shown by its low LOD score in the F1 data set). The mechanism at play here is quite simple: (i) $M_3$ is a QTL and therefore has a high LOD score, (ii) $M_1$ is in strong LD (think association) with $M_3$, (iii) $M_3$ therefore inherits its strong LOD score from $M_1$. 
+
+Keep this mechanisms in mind, it also applies to markers / QTL which are not in perfect linkage. 
+
+## Simple Interval Mapping 
+
+In the previous section, we considered each marker in turn as a candidate QTL. This is convenient but it's very unlikely that the QTL (let's say there is only one for now) coincides with any of the markers. In practice, the QTL is often located **between** two markers. 
+
+### Unknown QTL
+
+Consider the following figure of LOD scores with the true QTL (located at 0.45 cM) added in red. 
+
+```{r results='hide', fig.width=6, fig.height=4}
+map <- rbind(genetic_map, data.frame(Marker = "QTL", Location = 0.45))
+map$Marker <- as.character(map$Marker)
+map[,] <- map[order(map$Location), ]
+plot_data <- cbind(map, LOD = vapply(map$Marker, LOD_F1, numeric(1)))
+par(mar = c(4, 4, 1, 2))
+plot(LOD ~ Location, data = plot_data, 
+     pch = 19,
+     ylab = "LOD", xlab = "Position along the chromosome (in cM)", 
+     xaxt = "n", 
+     col = c("black", "red")[1 + (plot_data$Marker == "QTL")])
+abline(h = 2, lty = 2, col = "grey20")
+abline(v = 0.45, lty = 2, col = "red")
+text(x = 0.45, y = 2.83, labels = "QTL", col = "red", pos = 2)
+axis(side = 1, 
+     at = subset(plot_data, Marker != "QTL")$Location, 
+     labels = subset(plot_data, Marker != "QTL")$Marker, 
+     cex.axis = 1)
+```
+
+In this example, Marker $M_3$ has a high LOD score not because it's a QTL but because it's close to (and therefore in strong linkage with) the QTL as shown below (beware that we switched the axis compared to the previous haplotype figure):
+
+```{r fig.width = 6, fig.height=2, fig.cap = "Alleles at the QTL and marker $M_3$ in the F1 data set. Allele $0$ is coded in black and allele $1$ in grey"}
+par(mar = c(4, 5, 2, 1))
+image(y = 1:2, x = 1:100, 
+      z = data.matrix(subset(data_F1, select = QTL:Marker_3)), 
+      col = c("black", "grey60"), ylab = NA, xlab = "Mice", 
+      yaxt = "n", main = "Linkage between QTL and Marker 3")
+abline(h = 0.5 + 1:4, col = "grey80")
+axis(side = 2, at = 1:2, labels = c("QTL", "Marker_3"), cex.axis = 1, 
+     las = 2)
+```
+
+Marker $M_3$ is a good proxy for the $QTL$: the allele at marker $M_3$ is often predictive of the allele at the QTL. That's why they have similar LOD scores. The LOD score at the marker is usually smaller than at the QTL because the marker is only an imperfect proxy on the QTL: the statistical association with IgG1 levels decreases with the distance to the QTL. 
+
+In other words, the presence of a QTL somewhere leads to high LOD scores at close markers. Of course, since we only observe markers and not QTL, we need to turn this observation around: **a high LOD score at a marker (here $M_3$, at $50$ cM) is indicative of a QTL nearby (here at $0.45$ cM).**
+
+In practice, we'd like to **quantify** what *nearby* means in the previous sentence to have an approximate location of the QTL. The simplest strategy is based on **allele reconstruction**. 
+
+### Reconstructing a marker
+
+Consider an unobserved marker $M$ at location $0.48$, whose LOD score we'd like to compute. Since marker $M$ is unobserved, it sounds like Mission: Impossible... 
+
+Fortunately, a lot of information on $M$ is hiding in plain sight and we can call for help. 
+
+![Simon Pegg (not Evan Hunt, sorry) scanning the genome to reconstruct $M$](https://media.giphy.com/media/3ZP7udDbKKDS0/giphy.gif)
+<!-- ![Simon Pegg (not Evan Hunt, sorry) scanning the genome to reconstruct $M$](images/giphy.gif) -->
+
+Consider our first F1 mouse:
+
+```{r}
+knitr::kable(head(subset(data_F1, select = -QTL), 1))
+```
+
+
+```{r q4}
+question("If you had to take a guess, would you say that the allele at marker $M$ is", 
+         answer("more likely to be $0$", message = "Which known marker is $M$ closest to? What's its allele?"),
+         answer("more likely to be $1$", correct = TRUE),
+         allow_retry = TRUE, 
+         post_message = "Marker $M$ is located between markers $M_2$ (at 25 cM) and $M_3$ (at $50$ cM) but much closer to $M_3$. Its allele is therefore likely to match $M_3$ (rather $M_2$)."
+         )
+```
+
+Let's detail the mathematical formalism underlying our intuition: 
+
+- the distance between $M$ and $M_2$ is 23 cM
+- the distance between $M$ and $M_3$ is 2 cM
+
+The probability that $M_2$ and $M$ have the same allele due to crossovers is 
+$$
+p = \frac{1 + e^{-2 \times 0.23}}{2} \simeq 0.816
+$$
+And the probability that they have different alleles is the complement
+$$
+1 - p = \frac{1 - e^{-2 \times 0.23}}{2} \simeq 0.184
+$$
+
+Likewise the probability that $M_3$ and $M$ have the same allele due to crossovers is 
+$$
+q = \frac{1 + e^{-2 \times 0.02}}{2} \simeq 0.980
+$$
+And the probability that they have different alleles is the complement
+$$
+1 - q = \frac{1 - e^{-2 \times 0.02}}{2} \simeq 0.020
+$$
+
+Knowning that $M_2$ has allele $0$ and $M_3$ has allele $1$, the probability $p_0$ that $M$ has allele $0$ satisfies
+$$
+p_0 \propto \underbrace{p}_{M_2 = M} \times \underbrace{1-q}_{M_3 \neq M} = 0.816 \times 0.020 = 0.016
+$$
+where $\propto$ stands for *proportional to*. 
+
+Likewise, the probability $p_1$ that $M$ has allele $1$ is proportional to 
+$$
+p_1 \propto \underbrace{1-p}_{M_2 \neq M} \times \underbrace{q}_{M_3 = M} = 0.184 \times 0.980 = 0.181
+$$
+We can now use [Bayes rule](https://en.wikipedia.org/wiki/Bayes%27_theorem) to compute the probability that $M$ has allele $0$ or $1$ (in this case, we can also the fact that $p_0$ and $p_1$ should sum to $1$)
+$$
+\begin{cases}
+p_0 & = \frac{p(1-q)}{p(1-q) + (1-p)q} \simeq 0.081 \\
+p_1 & = \frac{(1-p)q}{p(1-q) + (1-p)q} \simeq 0.919
+\end{cases}
+$$
+
+Based on the recombination rates, marker $M$ is indeed much more likely to have allele $1$ than allele $0$. 
+
+We can of course repeat the process for all mice. For example, the third mouse has a different allele configuration than our first mouse. 
+
+```{r}
+knitr::kable(head(subset(data_F1, select = -QTL)[3, ]))
+```
+
+```{r q5}
+question("Using the same process, what value of $p_0$ do you find for this mouse?", 
+         answer("0.996", message = "Both flanking markers have allele $1$, the probably $p_0$ of allele $0$ should be quite low."), 
+         answer("0.081", message = "Try again"), 
+         answer("0.919", message = "The closest marker has allele $1$, the probably $p_0$ of allele $0$ should be lower than 0.5."),  
+         answer("0.004", correct = TRUE), 
+         allow_retry = TRUE, random_answer_order = TRUE
+         )
+```
+
+There are in fact only four different cases (listed below) to consider to compute $p_0$ and $p_1$. 
+
+```{r}
+reconstruction <- function(la, ra, ld, rd) {
+  ## probability p0 when left marker has allele la and is ld cM away
+  p <- .5*(1 + exp(-2 * ld))
+  q <- .5*(1 + exp(-2 * rd))
+  pl <- ifelse(la == 0, p, 1 - p) 
+  pr <- ifelse(ra == 0, q, 1 - q)
+  pl*pr / (pl*pr + (1-pl)*(1-pr))
+}
+df <- data.frame(Marker_2 = c(0, 0, 1, 1), 
+                 Marker_3 = c(0, 1, 0, 1))
+df$p0 <- with(df, reconstruction(Marker_2, Marker_3, ld = 0.23, rd = 0.2))
+df$p1 <- with(df, 1-p0)
+knitr::kable(df)
+```
+
+We don't need to compute everything from scratch for each new mouse. We simply look the probabilities $p_0$ and $p_1$ in the above table. 
+
+**We can thus reconstruct (albeit with some uncertainty) the allele of unobserved markers.**
+
+### Computing the LOD for unobserved markers
+
+Remember that the LOD score of a marker $M$ depends on the likelihood functions $L_{H_1}$ and $L_{H_0}$ via the formula
+
+$$
+LOD = \log_{10}\left( \frac{L_{H_1}(\hat{\mu}_0, \hat{\mu}_1, \hat{\sigma})}{L_{H_0}(\hat{\mu}, \hat{\sigma})} \right)
+$$
+
+We need to adapt the different terms to alleles which are neither $0$ or $1$ but a bit of both. 
+
+**$L_{H_0}$**
+
+If you remember correctly, $L_{H_0}(\hat{\mu}, \hat{\sigma})$ doesn't really depend on the allele since the mean $\mu$ does not depend on the allele. We can therefore keep the old numerical procedure to compute it. 
+
+**$L_{H_1}$**
+
+Things are slightly more tricky for $L_{H_1}$. Remember that, for observed markers, the likelihood for mouse $i$ with IgG1 level $x_i$ is
+$$
+\begin{cases}
+f_{\mu_0,\sigma^2}(x_i) & \text{if the mouse has allele } 0 \\
+f_{\mu_1,\sigma^2}(x_i) & \text{if the mouse has allele } 1 
+\end{cases}
+$$
+To account for the uncertainty surrounding the allele, we consider the modified likelihood 
+$$
+f_{\mu_0,\mu_1,\sigma^2}(x_i) = p_0^i \times f_{\mu_0,\sigma^2}(x_i) + p_1^i \times 
+f_{\mu_1,\sigma^2}(x_i)
+$$
+with $p_0^i$ (resp. $p_1^i$) is the probability that the allele is $0$ (resp. $1$) for mouse $i$, as computed in the previous section. 
+
+**Remark** This formula naturally extends the previous one. Indeed, for observed markers we can simply note $p_0^i = 1$ if the allele is $0$ and $p_1^i = 1$ if the allele is $1$. With such notations, $f_{\mu_0,\mu_1,\sigma^2}(x_i)$ simplifies to either $f_{\mu_0,\sigma^2}(x_i)$ or $f_{\mu_1,\sigma^2}(x_i)$
+
+With our new function $f_{\mu_0,\mu_1,\sigma^2}$, we can adapt $L_{H_1}$ as follows:
+
+$$
+L_{H_1}(x_1, \dots, x_n; \mu_0, \mu_1, \sigma) = \prod_{i = 1}^n f_{\mu_0,\mu_1,\sigma^2}(x_i)
+$$
+
+To summarize, we can 
+
+- compute $L_{H_0}(\mu, \sigma)$ (as before)
+- compute $L_{H_1}(\mu_0, \mu_1, \sigma)$ (with an adapted function)
+
+We can thus optimize $L_{H_0}$ in $(\mu, \sigma)$ and $L_{H_1}$ in $(\mu_0, \mu_1, \sigma)$ to compute the LOD score. 
+
+**Remark** Unlike the observed case, optimization of $L_{H_1}$ in $(\mu_0, \mu_1, \sigma)$ for unobserved marker has no closed-form solution. We resort to numerical optimization to solve it. 
+
+### Interval Mapping
+
+The function `LOD_marker()` implements the previous computations and allows us to compute the LOD score of a marker located at any position between 0 and 100 (in cM). $0$ and $100$ are not arbitrary values but correspond to the locations of our most extreme markers. 
+
+```{r lod_marker_setup}
+log_h1 <- function(pheno, proba) {
+  objective <- function(x) {
+    mu0 <- x[1]; mu1 <- x[2]; sigma <- x[3]
+    liks <- proba * dnorm(pheno, mean = mu0, sd = sigma) + (1 - proba) * dnorm(pheno, mean = mu1, sd = sigma)
+    -sum(log(liks))
+  }
+  -optim(par = c(10, 10.5, 1), fn = objective, 
+         lower = c(-Inf, -Inf, 1e-4), method = "L-BFGS-B")$value
+}
+LOD_marker <- function(position) {
+  position <- position/100
+  interval <- findInterval(position, genetic_map$Location)
+  left  <- data_F1[, paste0("Marker_", interval)]
+  right <- data_F1[, paste0("Marker_", interval+1)]
+  ld <- position - genetic_map$Location[interval]
+  rd <- genetic_map$Location[interval+1] - position
+  marker <- reconstruction(left, right, ld, rd)
+  .logh0 <- logh0(data_F1$IgG1)
+  .logh1 <- log_h1(data_F1$IgG1, marker)
+  lod <- (.logh1 - .logh0) * log10(exp(1))
+  cat(paste0("LOD score for position ", 100*position, " cM : ", lod))
+  invisible(lod)
+}
+```
+
+```{r LOD_marker, exercise = TRUE}
+LOD_marker(position = 48)
+```
+
+We can also plot the LOD score computed every cM to find all regions of the chromosome with LOD scores higher than 2 and 
+
+```{r, results='hide'}
+plot_data <- data.frame(
+  Location = seq(0, 99, by = 1)
+)
+plot_data$LOD <- with(plot_data, vapply(Location, FUN = LOD_marker, numeric(1)))
+```
+
+```{r, fig.height=4, fig.width=4.5 }
+plot(LOD ~ Location, data = plot_data, 
+     xlab = "Position along the chromosome (in cM)", 
+     ylab = "LOD score", type = "l",
+     main = "LOD score along the chromosome")
+abline(h = 2, lty = 2)
+abline(v = c(44, 61.5), lty = 3)
+segments(x0 = 44, x1 = 61.5, y0 = 0, 
+         col = "red", lwd = 3)
+text(x = (44 + 61.5)/2, y = 0, pos = 3, labels = "Position of the QTL", col = "red")
+```
+
+```{r q6}
+quiz(
+  caption = "Interval Mapping", 
+  question(
+    "Reconstruction at the true QTL", 
+    answer("Decreased the LOD score", correct = TRUE), 
+    answer("Increased the LOD score"), 
+    allow_retry = TRUE, 
+    post_message = "Reconstruction comes at the cost uncertainty which often degrades the signal. That why the LOD is lower when we reconstruct the alleles at the true QTL than when we observe it directly."
+  ), 
+  question(
+    "Based on the LOD scores along the chromosome, where would you locate the QTL", 
+    answer("In the region [0, 20] cM"),
+    answer("In the region [20, 45] cM"), 
+    answer("In the region [45, 62] cM", correct = TRUE),
+    answer("In the region [62, 80] cM"), 
+    answer("In the region [80, 100] cM"), 
+    allow_retry = TRUE, 
+    post_message = "The only region with LOD score higher than 2 is highlighted in red and corresponds to the range [45, 62] cM. If there were multiple QTLs on the chromosome, we would have multiple regions (and the graph would have multiple peaks)."
+  )
+)
+```
+
+
+
+## Conclusion
+
+We've reached the conclusion, well done for sticking so far!! We've introduced some of the core idea behind statistical association, testing, linkage desequilibrium, allele reconstruction. We also gained a working knowledge of QTL analysis. Reading scientific articles about QTL analysis may still be difficult but at least the major points and analysis methods should be clear. 
+
+QTL analysis is a complex topic and we only presented simple methods, intended to provide a basic understanding of QTL detection, rather than a comprehensive coverage of the subject. Many important topics, such as Composite Interval Mapping, epistasis, G$\times$E interactions, multi-trait
+QTL analysis were not covered. 
+
+We also gave some puzzling results without justification (where does the expression $\frac{1 - e^{-2d}}{2}$ for two markers separated by $d$ cM comes from?) because we don't have the mathematical tools yet (in this case the Poisson distribution) to give a proper justification. 
+
+It is nevertheless our hope that those lessons provided a solid foundation for your exploration and comprehension of QTL analysis. Good luck and feel free to ask questions!
