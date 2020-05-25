@@ -602,8 +602,8 @@ Compare (mentally) the value $\Delta \hat{\mu}$ computed on the original data se
 
 ```{r q7}
 question("Would you say that $\\Delta \\hat{\\mu}$ is", 
-         answer("Within the range", correct = TRUE), 
-         answer("Outside of the range", correct = FALSE), 
+         answer("Within the range", correct = FALSE), 
+         answer("Outside of the range", correct = TRUE), 
          post_message = "$\\Delta \\hat{\\mu}$=0.67 is outside the range: we need to be lucky to observe greater values."
          )
 ```
