@@ -8,27 +8,222 @@ output:
 runtime: shiny_prerendered
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, results='hide'}
 library(learnr)
-set.seed(2019)
-n <- 100
-Lineage <- sample(c("LEW", "BN"), size = n, replace = TRUE) 
-data <- data.frame(
-  Organism  = 1:n, 
-  Lineage   = Lineage, 
-  Marker_1  = ifelse(Lineage == "LEW", 0, 1), 
-  Marker_2  = ifelse(Lineage == "LEW", 0, 1), 
-  Marker_3  = ifelse(Lineage == "LEW", 0, 1),
-  Marker_4  = ifelse(Lineage == "LEW", 0, 1), 
-  Marker_5  = ifelse(Lineage == "LEW", 0, 1))
-data$IgG1 <- rnorm(n, 10, 1) + 0.5 * data$Marker_3
+### Functions -----------------------
+logh0 <- function(x) { 
+ mu <- mean(x); sigma <- sd(x)
+ sum(dnorm(x, mean = mu, sd = sigma, log = TRUE))
+}
+logh1 <- function(x, y) { 
+ mu0 <- mean(x); mu1 <- mean(y)
+ sigma <- sqrt(((length(x) - 1)*var(x) + (length(y) - 1)*var(y)) / (length(x) + length(y) - 2))
+ sum(dnorm(x, mean = mu0, sd = sigma, log = TRUE)) + sum(dnorm(y, mean = mu1, sd = sigma, log = TRUE))
+}
+LOD_generic <- function(marker = c(paste0("Marker_", 1:5), "QTL"), data) {
+  geno <- data[ , match.arg(marker)]
+  pheno0 <- data[geno == 0, "IgG1"]
+  pheno1 <- data[geno == 1, "IgG1"]
+  lod <- (logh1(pheno0, pheno1) - logh0(c(pheno0, pheno1))) * log10(exp(1))
+  cat(paste0("LOD score for ", marker, ": ", lod))
+  invisible(lod)
+}
+LOD <- function(marker) { LOD_generic(marker, data = data)}
+simulate_F1 <- function(n = 10, location = c(0, 0.25, 0.5, 0.8, 1)) {
+  start <- sample(c(0, 1), size = n, replace = TRUE)
+  n_co <- rpois(n = n, lambda = 1)
+  co_pos <- Vectorize(runif, vectorize.args = "n")(n = n_co)
+  # co <- Vectorize(rbinom, vectorize.args = "prob")(n = n, size = 1, prob = c(0.25, 0.25, 0.3, 0.2))
+  co <- sapply(co_pos, function(x) { 
+    tabulate(findInterval(x, vec = location), nbins = length(location)-1) 
+  })
+  res <- apply(cbind(start, t(co)), 1, function(x) {
+    paste0(cumsum(x) %% 2, collapse = "")
+  }
+  )
+  cat(paste("Breeding", n, "F1 mice:"), sep = "\n")
+  res
+}
+LOD_F1 <- function(marker) { LOD_generic(marker, data = data_F1) }
+reconstruction <- function(la, ra, ld, rd) {
+  ## probability p0 when left marker has allele la and is ld cM away
+  p <- .5*(1 + exp(-2 * ld))
+  q <- .5*(1 + exp(-2 * rd))
+  pl <- ifelse(la == 0, p, 1 - p) 
+  pr <- ifelse(ra == 0, q, 1 - q)
+  pl*pr / (pl*pr + (1-pl)*(1-pr))
+}
+log_h1 <- function(pheno, proba) {
+  objective <- function(x) {
+    mu0 <- x[1]; mu1 <- x[2]; sigma <- x[3]
+    liks <- proba * dnorm(pheno, mean = mu0, sd = sigma) + (1 - proba) * dnorm(pheno, mean = mu1, sd = sigma)
+    -sum(log(liks))
+  }
+  -optim(par = c(10, 10.5, 1), fn = objective, 
+         lower = c(-Inf, -Inf, 1e-4), method = "L-BFGS-B")$value
+}
+LOD_marker <- function(position) {
+  position <- position/100
+  interval <- findInterval(position, genetic_map$Location)
+  left  <- data_F1[, paste0("Marker_", interval)]
+  right <- data_F1[, paste0("Marker_", interval+1)]
+  ld <- position - genetic_map$Location[interval]
+  rd <- genetic_map$Location[interval+1] - position
+  marker <- reconstruction(left, right, ld, rd)
+  .logh0 <- logh0(data_F1$IgG1)
+  .logh1 <- log_h1(data_F1$IgG1, marker)
+  lod <- (.logh1 - .logh0) * log10(exp(1))
+  cat(paste0("LOD score for position ", 100*position, " cM : ", lod))
+  invisible(lod)
+}
+### Data ----------------------------
+### data ----------
+# set.seed(2019)
+# n <- 100
+# Lineage <- sample(c("LEW", "BN"), size = n, replace = TRUE) 
+# data <- data.frame(
+#   Organism  = 1:n, 
+#   Lineage   = Lineage, 
+#   Marker_1  = ifelse(Lineage == "LEW", 0, 1), 
+#   Marker_2  = ifelse(Lineage == "LEW", 0, 1), 
+#   Marker_3  = ifelse(Lineage == "LEW", 0, 1),
+#   Marker_4  = ifelse(Lineage == "LEW", 0, 1), 
+#   Marker_5  = ifelse(Lineage == "LEW", 0, 1))
+# data$IgG1 <- rnorm(n, 10, 1) + 0.5 * data$Marker_3
+# genetic_map <- data.frame(
+#   Marker   = paste0("Marker_", 1:5), 
+#   Location = c(0, 0.25, 0.5, 0.8, 1)
+# )
+data <- structure(list(Organism = 1:100, Lineage = structure(c(2L, 2L, 
+1L, 2L, 2L, 2L, 1L, 2L, 2L, 1L, 2L, 1L, 2L, 2L, 1L, 1L, 2L, 1L, 
+2L, 2L, 1L, 1L, 2L, 1L, 2L, 1L, 2L, 2L, 2L, 1L, 2L, 2L, 2L, 2L, 
+1L, 2L, 1L, 2L, 2L, 1L, 1L, 1L, 1L, 2L, 2L, 1L, 1L, 2L, 1L, 1L, 
+2L, 1L, 2L, 2L, 1L, 2L, 1L, 1L, 2L, 1L, 1L, 1L, 2L, 2L, 1L, 1L, 
+2L, 2L, 2L, 1L, 2L, 1L, 2L, 2L, 1L, 2L, 2L, 1L, 1L, 2L, 2L, 1L, 
+1L, 2L, 1L, 2L, 1L, 2L, 2L, 1L, 1L, 2L, 1L, 1L, 2L, 1L, 1L, 1L, 
+2L, 2L), .Label = c("BN", "LEW"), class = "factor"), Marker_1 = c(0, 
+0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 
+0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 
+0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 
+1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 
+0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0), Marker_2 = c(0, 
+0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 
+0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 
+0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 
+1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 
+0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0), Marker_3 = c(0, 
+0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 
+0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 
+0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 
+1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 
+0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0), Marker_4 = c(0, 
+0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 
+0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 
+0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 
+1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 
+0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0), Marker_5 = c(0, 
+0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 1, 
+0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1, 
+0, 0, 1, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0, 
+1, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 
+0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 0, 0), IgG1 = c(9.94705261728548, 
+9.7636015987286, 10.1620364917803, 9.2445153326091, 9.13840652505588, 
+9.47233451093049, 9.71003276024303, 10.9495164225986, 10.0286078937076, 
+11.3197876839797, 8.99945959896919, 9.73964254389047, 10.4442418414147, 
+11.7386855946055, 9.72479707284039, 9.3174364216758, 9.68597146298744, 
+10.1065836433185, 10.5599036333884, 9.75025711519229, 11.1441367415969, 
+11.0903253694592, 9.71570556157246, 11.8471176492787, 12.375446968054, 
+10.6387379678456, 9.17086748349537, 9.87703582479413, 10.4825055785291, 
+10.3196108886586, 8.92978009524402, 9.92944879671489, 11.2886192175236, 
+9.84978864263198, 9.94730067629258, 9.35877202490483, 10.2543059128343, 
+9.99469444256938, 9.62761153823694, 11.6585613116991, 11.1714694114826, 
+9.83413056419348, 9.68525663009727, 9.69751409355352, 9.75029056726953, 
+10.4709286827681, 10.5256274252863, 9.24157488238227, 9.88014787106454, 
+9.87310321915618, 9.15494981028566, 11.3579277638639, 9.31639352777252, 
+9.98930546616088, 9.09583545793573, 11.3917766061904, 11.0185049298829, 
+10.9630426683068, 10.5460897883765, 7.86090425421381, 9.46035226126777, 
+10.3638215126352, 9.50470979340639, 9.20308759762603, 11.7222976490345, 
+9.60872852740117, 9.96222090482531, 9.64728660743083, 7.94876772595012, 
+9.46292927804328, 10.5885578923834, 11.3102311398888, 7.39719816305135, 
+8.34141715067591, 10.7454450711247, 10.6369227001695, 9.2929064184433, 
+10.1444666986978, 9.7556208804291, 9.00236313446866, 11.0190652992281, 
+11.7199216104304, 12.6957523081441, 11.0986451345915, 10.6892051383883, 
+8.45860319967511, 10.3014163659365, 10.7254900730292, 11.5101879269156, 
+10.3829306531878, 10.2773284197274, 10.6050280723069, 11.3447476239398, 
+10.3475419943789, 8.1395372945917, 11.5949483241038, 12.0756539741513, 
+10.8364325445512, 9.68270737854768, 9.09787780107579)), row.names = c(NA, 
+-100L), class = "data.frame")
+### data_F1 -----------------
+# set.seed(32)
+# n <- 100
+# data_F1 <- matrix(as.numeric(unlist(strsplit(simulate_F1(n = n, location = c(0, 0.25, 0.45, 0.5, 0.8, 1)),
+#                                              split = NULL))),
+#        ncol = 6, byrow = TRUE,
+#        dimnames = list(NULL, c(paste0("Marker_", 1:2), "QTL", paste0("Marker_", 3:5))))
+# data_F1 <- data.frame(Organism = 1:n,
+#                       data_F1)
+# data_F1$IgG1 <- with(data_F1, rnorm(n, 10, 1) + 0.5 * QTL)
+data_F1 <- structure(list(Organism = 1:100, Marker_1 = c(0, 1, 0, 1, 0, 
+0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 
+1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 
+1, 0, 1, 1, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 1, 
+1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 
+0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0), Marker_2 = c(0, 1, 1, 1, 0, 
+1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 0, 
+1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 
+0, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 1, 
+1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 
+0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0), QTL = c(1, 1, 1, 1, 0, 0, 0, 
+0, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 
+1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 
+1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 1, 1, 0, 
+0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 
+0, 0, 1, 0, 1, 1, 0, 0, 0), Marker_3 = c(1, 0, 1, 1, 0, 0, 0, 
+0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 
+1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 
+1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 1, 0, 
+0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 1, 
+0, 0, 1, 0, 1, 1, 0, 0, 0), Marker_4 = c(1, 1, 1, 1, 0, 0, 0, 
+1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 
+1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 
+1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 1, 
+1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 
+0, 0, 1, 0, 1, 1, 0, 1, 0), Marker_5 = c(1, 1, 1, 1, 0, 0, 0, 
+1, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 1, 
+1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 0, 0, 0, 
+1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 
+1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 
+0, 0, 1, 0, 1, 1, 0, 1, 0), IgG1 = c(9.42994107956602, 10.920902878792, 
+10.6196804239264, 11.1827916915496, 9.75038989254842, 9.95959652790155, 
+8.36426646968225, 7.72164016025065, 11.7252635127295, 9.15523195896251, 
+8.06913624047868, 10.2692816298478, 9.53900377699502, 11.1377838076074, 
+9.45338738322228, 11.1974664540492, 11.757344096512, 10.2371876873039, 
+10.3470893109419, 11.4279173996494, 10.9412426054199, 9.96537863032484, 
+11.5541618085144, 9.4727035040183, 11.3461060336845, 11.7561445891835, 
+8.97225927862827, 10.1539498286968, 11.387692082765, 8.33212332296649, 
+9.4703941399081, 9.50726355550619, 10.477651105133, 9.68118937160181, 
+10.6050739617185, 11.1764498969772, 10.8132994713318, 9.88854292891679, 
+9.87404805989533, 10.7681826839652, 8.61814218030816, 8.54335153478021, 
+10.8998045054086, 9.8375430704763, 9.65147302734362, 10.0306964443493, 
+10.6586791172052, 9.36923099230049, 11.3502975253784, 9.55546706766562, 
+10.4217658204251, 12.1947146650665, 11.2914523039509, 11.5752558607849, 
+9.81979704829364, 10.6732823189047, 11.654419949513, 9.38266086313424, 
+10.1107845003821, 8.0513396762701, 9.5885154596651, 7.21998688674491, 
+10.5748680331871, 10.519601721759, 9.12585289276801, 7.97866719985005, 
+10.9326805069451, 12.5650775785012, 12.9915761717439, 9.70157538046798, 
+10.4686580338918, 10.8965462640549, 9.58339448567984, 10.3849292887178, 
+11.6064780005288, 8.92340667068383, 7.85838355774293, 10.1298059804036, 
+11.7843538247548, 10.2597973999454, 11.2931247885127, 10.4603922278377, 
+9.27126994184521, 9.64593286566608, 10.9295156397386, 11.2573964641592, 
+11.0532449822385, 10.7952349410124, 9.45298211688623, 11.1185201261528, 
+9.83727407947713, 10.9465705630343, 10.7833574457311, 9.77736891817671, 
+9.88711209706926, 10.6080065867958, 10.9493114367875, 10.3008967669891, 
+11.4511154645516, 10.4633227545813)), row.names = c(NA, -100L
+), class = "data.frame")
+### Options -----------------------------
 checker <- function(label, user_code, check_code, envir_result, evaluate_result, ...) {
   list(message = check_code, correct = TRUE, location = "append")
 }
-genetic_map <- data.frame(
-  Marker   = paste0("Marker_", 1:5), 
-  Location = c(0, 0.25, 0.5, 0.8, 1)
-)
 tutorial_options(exercise.timelimit = 60, exercise.checker = checker)
 knitr::opts_chunk$set(echo = FALSE)
 ```
@@ -76,24 +271,24 @@ knitr::kable(head(data))
 Since we don't have a candidate gene (or candidate marker in mind), we can just treat all markers as potential candidates and compute the LOD of each one in turn. The function `LOD()` allows you to do exactly that. 
 
 ```{r lod_setup}
-logh0 <- function(x) { 
- mu <- mean(x); sigma <- sd(x)
- sum(dnorm(x, mean = mu, sd = sigma, log = TRUE))
-}
-logh1 <- function(x, y) { 
- mu0 <- mean(x); mu1 <- mean(y)
- sigma <- sqrt(((length(x) - 1)*var(x) + (length(y) - 1)*var(y)) / (length(x) + length(y) - 2))
- sum(dnorm(x, mean = mu0, sd = sigma, log = TRUE)) + sum(dnorm(y, mean = mu1, sd = sigma, log = TRUE))
-}
-LOD_generic <- function(marker = c(paste0("Marker_", 1:5), "QTL"), data) {
-  geno <- data[ , match.arg(marker)]
-  pheno0 <- data[geno == 0, "IgG1"]
-  pheno1 <- data[geno == 1, "IgG1"]
-  lod <- (logh1(pheno0, pheno1) - logh0(c(pheno0, pheno1))) * log10(exp(1))
-  cat(paste0("LOD score for ", marker, ": ", lod))
-  invisible(lod)
-}
-LOD <- function(marker) { LOD_generic(marker, data = data)}
+# logh0 <- function(x) { 
+#  mu <- mean(x); sigma <- sd(x)
+#  sum(dnorm(x, mean = mu, sd = sigma, log = TRUE))
+# }
+# logh1 <- function(x, y) { 
+#  mu0 <- mean(x); mu1 <- mean(y)
+#  sigma <- sqrt(((length(x) - 1)*var(x) + (length(y) - 1)*var(y)) / (length(x) + length(y) - 2))
+#  sum(dnorm(x, mean = mu0, sd = sigma, log = TRUE)) + sum(dnorm(y, mean = mu1, sd = sigma, log = TRUE))
+# }
+# LOD_generic <- function(marker = c(paste0("Marker_", 1:5), "QTL"), data) {
+#   geno <- data[ , match.arg(marker)]
+#   pheno0 <- data[geno == 0, "IgG1"]
+#   pheno1 <- data[geno == 1, "IgG1"]
+#   lod <- (logh1(pheno0, pheno1) - logh0(c(pheno0, pheno1))) * log10(exp(1))
+#   cat(paste0("LOD score for ", marker, ": ", lod))
+#   invisible(lod)
+# }
+# LOD <- function(marker) { LOD_generic(marker, data = data)}
 ```
 
 ```{r lod, exercise = TRUE}
@@ -183,21 +378,21 @@ In particular, the distance is 25 cM (or 0.25 Morgans) between markers $M_1$ and
 You can sample the genetic make-up (*i.e* alleles at the 5 markers $M_1$ to $M_5$, also called **haplotype**) of $n$ $F_1$ children between a LEW and a BN parent using the `simulate_F1()` function. 
 
 ```{r simulate_F1_setup}
-simulate_F1 <- function(n = 10, location = c(0, 0.25, 0.5, 0.8, 1)) {
-  start <- sample(c(0, 1), size = n, replace = TRUE)
-  n_co <- rpois(n = n, lambda = 1)
-  co_pos <- Vectorize(runif, vectorize.args = "n")(n = n_co)
-  # co <- Vectorize(rbinom, vectorize.args = "prob")(n = n, size = 1, prob = c(0.25, 0.25, 0.3, 0.2))
-  co <- sapply(co_pos, function(x) { 
-    tabulate(findInterval(x, vec = location), nbins = length(location)-1) 
-  })
-  res <- apply(cbind(start, t(co)), 1, function(x) {
-    paste0(cumsum(x) %% 2, collapse = "")
-  }
-  )
-  cat("Breeding 100 F1 mice:", sep = "\n")
-  res
-}
+# simulate_F1 <- function(n = 10, location = c(0, 0.25, 0.5, 0.8, 1)) {
+#   start <- sample(c(0, 1), size = n, replace = TRUE)
+#   n_co <- rpois(n = n, lambda = 1)
+#   co_pos <- Vectorize(runif, vectorize.args = "n")(n = n_co)
+#   # co <- Vectorize(rbinom, vectorize.args = "prob")(n = n, size = 1, prob = c(0.25, 0.25, 0.3, 0.2))
+#   co <- sapply(co_pos, function(x) { 
+#     tabulate(findInterval(x, vec = location), nbins = length(location)-1) 
+#   })
+#   res <- apply(cbind(start, t(co)), 1, function(x) {
+#     paste0(cumsum(x) %% 2, collapse = "")
+#   }
+#   )
+#   cat("Breeding 100 F1 mice:", sep = "\n")
+#   res
+# }
 ```
 
 ```{r simulate_F1, exercise = TRUE}
@@ -232,15 +427,15 @@ quiz(caption = "Recombination and crossover",
 
 Assume we breed 100 F1 mice as described previously to build a new dataset. 
 ```{r results='hide'}
-set.seed(32)
-n <- 100
-data_F1 <- matrix(as.numeric(unlist(strsplit(simulate_F1(n = n, location = c(0, 0.25, 0.45, 0.5, 0.8, 1)), 
-                                             split = NULL))), 
-       ncol = 6, byrow = TRUE, 
-       dimnames = list(NULL, c(paste0("Marker_", 1:2), "QTL", paste0("Marker_", 3:5))))
-data_F1 <- data.frame(Organism = 1:n, 
-                      data_F1)
-data_F1$IgG1 <- with(data_F1, rnorm(n, 10, 1) + 0.5 * QTL)
+# set.seed(32)
+# n <- 100
+# data_F1 <- matrix(as.numeric(unlist(strsplit(simulate_F1(n = n, location = c(0, 0.25, 0.45, 0.5, 0.8, 1)), 
+#                                              split = NULL))), 
+#        ncol = 6, byrow = TRUE, 
+#        dimnames = list(NULL, c(paste0("Marker_", 1:2), "QTL", paste0("Marker_", 3:5))))
+# data_F1 <- data.frame(Organism = 1:n, 
+#                       data_F1)
+# data_F1$IgG1 <- with(data_F1, rnorm(n, 10, 1) + 0.5 * QTL)
 # set.seed(20)
 # n <- 100
 # data_F1 <- matrix(as.numeric(unlist(strsplit(simulate_F1(n = n), split = NULL))), 
@@ -258,7 +453,7 @@ knitr::kable(head(subset(data_F1, select = -QTL)))
 ```
 
 ```{r lod_f1_setup}
-LOD_F1 <- function(marker) { LOD_generic(marker, data = data_F1) }
+# LOD_F1 <- function(marker) { LOD_generic(marker, data = data_F1) }
 ```
 
 We can use the function `LOD_F1()` to compute the LOD score of each marker on this new data set. 
@@ -306,7 +501,7 @@ axis(side = 1,
 
 The frequency of allele $1$ is very similar for all markers, so why are the LOD scores so different? It turns out that the frequency of allele $1$ is important but so is its distribution **across** mice. If we look at the haplotypes of all mice, linkage is much less of a problem in F1 mice (right) than in LEW/BN mice (left). 
 
-```{r fig.width = 6, fig.height=4, fig.cap = "Haplotypes of all mice in each data set. Allele $0$ is coded in black and allele $1$ in grey. Each mice corresponds to a row."}
+```{r fig.width = 6, fig.height=4, fig.cap = "Haplotypes of all mice in each data set. Allele $0$ is coded in black and allele $1$ in grey. Each mouse corresponds to a row."}
 par(mfrow = c(1, 2))
 image(x = 1:5, y = 1:100, 
       z = t(data.matrix(subset(data, select = Marker_1:Marker_5))), 
@@ -333,7 +528,7 @@ In the previous section, we considered each marker in turn as a candidate QTL. T
 
 ### Unknown QTL
 
-Consider the following figure of LOD scores with the true QTL (located at 0.45 cM) added in red. 
+Consider the following figure of LOD scores with the true QTL (located at 45 cM) added in red. 
 
 ```{r results='hide', fig.width=6, fig.height=4}
 map <- rbind(genetic_map, data.frame(Marker = "QTL", Location = 0.45))
@@ -370,7 +565,7 @@ axis(side = 2, at = 1:2, labels = c("QTL", "Marker_3"), cex.axis = 1,
 
 Marker $M_3$ is a good proxy for the $QTL$: the allele at marker $M_3$ is often predictive of the allele at the QTL. That's why they have similar LOD scores. The LOD score at the marker is usually smaller than at the QTL because the marker is only an imperfect proxy on the QTL: the statistical association with IgG1 levels decreases with the distance to the QTL. 
 
-In other words, the presence of a QTL somewhere leads to high LOD scores at close markers. Of course, since we only observe markers and not QTL, we need to turn this observation around: **a high LOD score at a marker (here $M_3$, at $50$ cM) is indicative of a QTL nearby (here at $0.45$ cM).**
+In other words, the presence of a QTL somewhere leads to high LOD scores at close markers. Of course, since we only observe markers and not QTL, we need to turn this observation around: **a high LOD score at a marker (here $M_3$, at $50$ cM) is indicative of a QTL nearby (here at $45$ cM).**
 
 In practice, we'd like to **quantify** what *nearby* means in the previous sentence to have an approximate location of the QTL. The simplest strategy is based on **allele reconstruction**. 
 
@@ -461,14 +656,6 @@ question("Using the same process, what value of $p_0$ do you find for this mouse
 There are in fact only four different cases (listed below) to consider to compute $p_0$ and $p_1$. 
 
 ```{r}
-reconstruction <- function(la, ra, ld, rd) {
-  ## probability p0 when left marker has allele la and is ld cM away
-  p <- .5*(1 + exp(-2 * ld))
-  q <- .5*(1 + exp(-2 * rd))
-  pl <- ifelse(la == 0, p, 1 - p) 
-  pr <- ifelse(ra == 0, q, 1 - q)
-  pl*pr / (pl*pr + (1-pl)*(1-pr))
-}
 df <- data.frame(Marker_2 = c(0, 0, 1, 1), 
                  Marker_3 = c(0, 1, 0, 1))
 df$p0 <- with(df, reconstruction(Marker_2, Marker_3, ld = 0.23, rd = 0.2))
@@ -531,30 +718,30 @@ We can thus optimize $L_{H_0}$ in $(\mu, \sigma)$ and $L_{H_1}$ in $(\mu_0, \mu_
 
 The function `LOD_marker()` implements the previous computations and allows us to compute the LOD score of a marker located at any position between 0 and 100 (in cM). $0$ and $100$ are not arbitrary values but correspond to the locations of our most extreme markers. 
 
-```{r lod_marker_setup}
-log_h1 <- function(pheno, proba) {
-  objective <- function(x) {
-    mu0 <- x[1]; mu1 <- x[2]; sigma <- x[3]
-    liks <- proba * dnorm(pheno, mean = mu0, sd = sigma) + (1 - proba) * dnorm(pheno, mean = mu1, sd = sigma)
-    -sum(log(liks))
-  }
-  -optim(par = c(10, 10.5, 1), fn = objective, 
-         lower = c(-Inf, -Inf, 1e-4), method = "L-BFGS-B")$value
-}
-LOD_marker <- function(position) {
-  position <- position/100
-  interval <- findInterval(position, genetic_map$Location)
-  left  <- data_F1[, paste0("Marker_", interval)]
-  right <- data_F1[, paste0("Marker_", interval+1)]
-  ld <- position - genetic_map$Location[interval]
-  rd <- genetic_map$Location[interval+1] - position
-  marker <- reconstruction(left, right, ld, rd)
-  .logh0 <- logh0(data_F1$IgG1)
-  .logh1 <- log_h1(data_F1$IgG1, marker)
-  lod <- (.logh1 - .logh0) * log10(exp(1))
-  cat(paste0("LOD score for position ", 100*position, " cM : ", lod))
-  invisible(lod)
-}
+```{r lod_marker_setup, eval = FALSE}
+# log_h1 <- function(pheno, proba) {
+#   objective <- function(x) {
+#     mu0 <- x[1]; mu1 <- x[2]; sigma <- x[3]
+#     liks <- proba * dnorm(pheno, mean = mu0, sd = sigma) + (1 - proba) * dnorm(pheno, mean = mu1, sd = sigma)
+#     -sum(log(liks))
+#   }
+#   -optim(par = c(10, 10.5, 1), fn = objective, 
+#          lower = c(-Inf, -Inf, 1e-4), method = "L-BFGS-B")$value
+# }
+# LOD_marker <- function(position) {
+#   position <- position/100
+#   interval <- findInterval(position, genetic_map$Location)
+#   left  <- data_F1[, paste0("Marker_", interval)]
+#   right <- data_F1[, paste0("Marker_", interval+1)]
+#   ld <- position - genetic_map$Location[interval]
+#   rd <- genetic_map$Location[interval+1] - position
+#   marker <- reconstruction(left, right, ld, rd)
+#   .logh0 <- logh0(data_F1$IgG1)
+#   .logh1 <- log_h1(data_F1$IgG1, marker)
+#   lod <- (.logh1 - .logh0) * log10(exp(1))
+#   cat(paste0("LOD score for position ", 100*position, " cM : ", lod))
+#   invisible(lod)
+# }
 ```
 
 ```{r LOD_marker, exercise = TRUE}
