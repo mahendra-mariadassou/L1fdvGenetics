@@ -11,7 +11,7 @@ The goal of `L1fdvGenetics` is to provide interactive tutorials for the
 Genetics project. Tutorials are packaged so you can install them on you
 computer and do the exercices without access to an internet connection.
 
-## Installation (I)
+## Local Installation
 
 You only need to perform each of the following steps **once**:
 
@@ -86,15 +86,26 @@ remotes::install_github("mahendra-mariadassou/L1fdvGenetics")
 The tutorials included in `L1fdvGenetics` are lightweight and have no
 dependencies. It should be quite fast and not consume a lot of data.
 
+## Remote installation
+
+If you have trouble installing R on your computer, you can also use it
+on a remote server. **This is not the preferred solution as it’s limited
+to 9 people**. Favor the local installation if you can.
+
+  - Sign up on [Rstudio Cloud](https://rstudio.cloud/)
+  - Join the [Genetics
+    project](https://rstudio.cloud/spaces/71850/join?access_code=Ojh4cBY8MsdNd44weVIZ6u5txVALu8l8wLriT99k)
+  - Choose ‘Join Space’
+  - Choose ‘Projects’ and select ‘Start’ (blue buttons)
+    ![](inst/images/login_screen.png)
+  - Rstudio deploys the project on a remote server, **you don’t need to
+    install anything else**
+  - You can then start the tutorial as shown below
+
 ## Starting a tutorial
 
 This package is intended for use with `learnr` (which should be
 installed when you install `L1fdvGenetics`)
-
-``` r
-library(learnr)
-library(L1fdvGenetics)
-```
 
 There are two tutorials in the package
 
