@@ -116,9 +116,28 @@ There are two tutorials in the package
 learnr::run_tutorial("01_candidate_gene", package = "L1fdvGenetics")
 ```
 
+If you have an error (occurs on Windows, with R 4.0.0)s, you can try the
+following command:
+
+``` r
+rmarkdown::run(file = NULL, 
+               dir = learnr:::get_tutorial_path("01_candidate_gene",  
+                                                package = "L1fdvGenetics"), 
+               shiny_args = list(launch.browser = 1))
+```
+
 ### QTL detection by Simple Interval Mapping (SIM)
 
 ``` r
 ## Launch only one tutorial at the time!!
 learnr::run_tutorial("02_interval_mapping", package = "L1fdvGenetics")
+```
+
+If you have an error, you can try the following command:
+
+``` r
+rmarkdown::run(file = NULL, 
+               dir = learnr:::get_tutorial_path("02_interval_mapping",  
+                                                package = "L1fdvGenetics"), 
+               shiny_args = list(launch.browser = 1))
 ```
