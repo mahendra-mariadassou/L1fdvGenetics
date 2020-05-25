@@ -224,21 +224,21 @@ Once again, since we don't have access to the true values $\mu_0$ and $\mu_1$, w
 
 ```{r q6}
 quiz(caption = "Estimators", 
-     question("Pick the right value for $\\hat{\\mu)_0$", 
+     question("Pick the right value for $\\hat{\\mu}_0$", 
               answer("9.88", message = "You may have mixed up `G0` and `G1`"), 
               answer("10.55", TRUE), 
               answer("0.67"), 
               answer("-0.67"), 
               random_answer_order = TRUE, 
               allow_retry = TRUE), 
-     question("Pick the right value for $\\hat{\\mu)_1$", 
+     question("Pick the right value for $\\hat{\\mu}_1$", 
               answer("10.55", message = "You may have mixed up `G0` and `G1`"), 
               answer("9.88", TRUE), 
               answer("0.67"), 
               answer("-0.67"), 
               random_answer_order = TRUE, 
               allow_retry = TRUE), 
-     question("Pick the right value for $\\Delta \\hat{\\mu)$", 
+     question("Pick the right value for $\\Delta \\hat{\\mu}$", 
               answer("9.88"), 
               answer("10.55"), 
               answer("0.67", TRUE), 
@@ -332,7 +332,7 @@ question("Based on the previous graph, what ranges of values would you consider 
          answer("[-0.4, -0.2)"),
          answer("[-0.2, 0.2]"), 
          answer("(0.2, 0.4]"),
-         answer(">0.4", correct = TRUE),
+         answer("$\\geq$ 0.4", correct = TRUE),
          allow_retry = TRUE, 
          post_message = "Values of $\\Delta \\hat{\\mu}$ larger than 0.42 and smaller than -0.42 are observed less than 5% of the time. They are therefore quite atypical if `G0` and `G1` are the same average IgG1 level."
          )
@@ -397,8 +397,8 @@ $$
 quiz(caption = "Properties of gaussian densities", 
      question(
        "Are you more likely to observe values of X", 
-       answer("Close to $\\mu$$", correct = TRUE), 
-       answer("Far from $\\mu$$", correct = FALSE), 
+       answer("Close to $\\mu$", correct = TRUE), 
+       answer("Far from $\\mu$", correct = FALSE), 
        random_answer_order = TRUE, allow_retry = TRUE,
        post_message = "Since the density is highest closer to $\\mu$, you're more likely to observe values close to $\\mu$." 
        ), 
