@@ -105,9 +105,11 @@ to 9 people**. Favor the local installation if you can.
 ## Starting a tutorial
 
 This package is intended for use with `learnr` (which should be
-installed when you install `L1fdvGenetics`)
+installed when you install `L1fdvGenetics`).
 
-There are two tutorials in the package
+There are two tutorials in the package. Make sure to restart R before
+running a tutorial. **Don’t run a tutorial twice (or two different
+tutorials) in the same R session.**
 
 ### Candidate gene (single marker) approach
 
@@ -116,7 +118,7 @@ There are two tutorials in the package
 learnr::run_tutorial("01_candidate_gene", package = "L1fdvGenetics")
 ```
 
-If you have an error (occurs on Windows, with R 4.0.0)s, you can try the
+If you have an error (occurs on Windows, with R 4.0.0), you can try the
 following command:
 
 ``` r

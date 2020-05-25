@@ -93,9 +93,9 @@ If you have trouble installing R on your computer, you can also use it on a remo
 
 ## Starting a tutorial
 
-This package is intended for use with `learnr` (which should be installed when you install `L1fdvGenetics`)
+This package is intended for use with `learnr` (which should be installed when you install `L1fdvGenetics`). 
 
-There are two tutorials in the package
+There are two tutorials in the package. Make sure to restart R before running a tutorial. **Don't run a tutorial twice (or two different tutorials) in the same R session.**
 
 ### Candidate gene (single marker) approach
 
