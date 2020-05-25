@@ -104,7 +104,7 @@ There are two tutorials in the package
 learnr::run_tutorial("01_candidate_gene", package = "L1fdvGenetics")
 ```
 
-If you have an error (occurs on Windows, with R 4.0.0)s, you can try the following command:
+If you have an error (occurs on Windows, with R 4.0.0), you can try the following command:
 ```{r, eval =FALSE}
 rmarkdown::run(file = NULL, 
                dir = learnr:::get_tutorial_path("01_candidate_gene",  
