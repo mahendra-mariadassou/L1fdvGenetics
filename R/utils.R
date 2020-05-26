@@ -19,7 +19,7 @@ logh1_position <- function(pheno, proba) {
     -sum(log(liks))
   }
   -optim(par = c(10, 10.5, 1), fn = objective,
-         lower = c(-Inf, -Inf, 1e-4), method = "L-BFGS-B")$value
+         lower = c(-Inf, -Inf, 0.1), method = "L-BFGS-B")$value
 }
 
 ## Internal function to simulate F1 mice
@@ -29,7 +29,8 @@ simulate_F1 <- function(n = 10, map) {
   co_pos <- Vectorize(runif, vectorize.args = "n")(n = n_co)
   location <- map$Location
   co <- sapply(co_pos, function(x) {
-    tabulate(findInterval(100 * x, vec = location), nbins = length(location)-1)
+    tabulate(findInterval(100 * x, vec = location, rightmost.closed = TRUE),
+             nbins = length(location)-1)
   })
   res <- apply(cbind(start, t(co)), 1, function(x) { cumsum(x) %% 2})
   rownames(res) <- map$Marker
@@ -54,7 +55,7 @@ LOD <- function(marker, data, phenotype = "IgG1") {
   pheno1 <- data[geno == 1, phenotype]
   pheno01 <- c(pheno0, pheno1)
   lod <- (logh1(pheno0, pheno1) - logh0(pheno01)) * log10(exp(1))
-  cat(paste0("LOD score for ", marker, ": ", lod))
+  cat(paste0("LOD score for ", marker, ": ", lod), sep = "\n")
   invisible(lod)
 }
 
@@ -99,7 +100,7 @@ reconstruction <- function(la, ra, ld, rd) {
 #' LOD_position(position = 48, data = hw_data, map = genetic_map)
 LOD_position <- function(position, data, map, phenotype = "IgG1") {
   position <- position
-  interval <- findInterval(position, map$Location)
+  interval <- findInterval(position, map$Location, rightmost.closed = TRUE)
   left  <- data[, interval+1]
   right <- data[, interval+2]
   ld <- position - map$Location[interval]
@@ -109,6 +110,6 @@ LOD_position <- function(position, data, map, phenotype = "IgG1") {
   .logh0 <- logh0(pheno)
   .logh1 <- logh1_position(pheno, marker)
   lod <- (.logh1 - .logh0) * log10(exp(1))
-  cat(paste0("LOD score for position ", position, " cM : ", lod))
-  invisible(lod)
+  # cat(paste0("LOD score for position ", position, " cM : ", lod))
+  lod
 }
