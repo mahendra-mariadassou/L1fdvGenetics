@@ -8,7 +8,112 @@ output: html_document
 ```{r setup, include=FALSE}
 ## DO NOT EDIT THIS CHUNCK
 knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 5, cache = FALSE)
-library(L1fdvGenetics)
+library(L1fdvGenetics) ## Homework data and helper functions()
+data("hw_data")      ## Homework data: geno/phenotypes of the F1 mice
+data("genetic_map")  ## Homework data: genetic map
 ```
 
-## 
+# Goal 
+
+You're doing an internship in an immunology lab working with mice. The lab developed a QTL panel (a dense genetic map) for LEWIS and BN lines and the PI (Principal Investigator) asked the previous intern to do a QTL analysis for IgG1 production. Unfortunately, the intern was super sloppy and his digital lab book is very messy with bits of code and comments. The PI tasked you to revisit and document the analysis, to produce a nicer report. 
+
+<!-- replace {r} with {r, include = FALSE} to remove a chunck output from the report -->
+<!-- replace {r} with {r, echo = FALSE} to remove a chunck code from the report -->
+<!-- You can combine options such as {r, include = FALSE, echo = FALSE} -->
+
+# Data
+
+## Genetic data
+
+**Instructions:** Give a brief description of the genetic data, with relevant information.
+
+<!-- Edit here -->
+
+```{r}
+dim(hw_data)
+colnames(hw_data)[-1]
+summary(range(hw_data[ , "IgG1"]))
+```
+
+## Genetic map 
+
+**Instructions:** Give a brief description of the genetic data, with relevant information.
+
+<!-- Edit here -->
+
+```{r}
+rbind(head(genetic_map, 2), tail(genetic_map, 2))
+## Nb markers
+with(genetic_map, tapply(Location, Chromosome, length))
+## dist between markers
+with(genetic_map, tapply(Location, Chromosome, function(x) { mean(diff(x)) })) 
+## Min/Max distance
+with(genetic_map, tapply(Location, Chromosome, function(x) { range(diff(x)) }))
+## Min/Max positions
+with(genetic_map, tapply(Location, Chromosome, range)) 
+```
+
+# Analysis on chromosome 1 
+
+**Instructions:** Document the analyses performed. Select, format and comment the relevant results. 
+
+<!-- Edit here (or below, but preserve document structure) -->
+
+```{r}
+chr1_map <- subset(genetic_map, Chromosome == "Chr1")
+chr1_markers <- chr1_map[ , "Marker"]
+chr1_data <- hw_data[ , c("Organism", chr1_markers, "IgG1")]
+for (marker in chr1_markers) {
+  LOD(marker = marker, data = chr1_data) 
+}
+```
+
+<!-- replace {r} with {r, fig.cap = "My caption"} to add a caption -->
+
+```{r}
+## LOD scores
+positions  <- seq(from = 0, to = 100, by = 1)
+lod_scores <- rep(0, length(positions)) 
+for (i in 1:length(positions)) {
+  lod_scores[i] <- LOD_position(position = positions[i], data = chr1_data, map = chr1_map)
+}
+lod_data <- data.frame(Position = positions, 
+                       LOD      = lod_scores)
+## Plot
+plot(LOD ~ Position, data = lod_data, 
+     type = "o",
+     xlab = "Position along chromosome 1 (in cM)", 
+     ylab = "LOD score"
+     )
+abline(v = chr1_map$Location, lty = 3, col = "grey80")
+```
+
+```{r}
+## Positions
+subset(lod_data, LOD >= 2)
+```
+
+# Analysis on chromosome 2 (DIY)
+
+**This part is completely optional and will not count toward the final grade**. 
+
+**Instructions:** Repeat and adapt the previous analysis to detect and position putative QTL located in Chromosome 2. 
+
+<!-- Edit here -->
+
+```{r}
+## Write code here
+```
+
+# Conclusion 
+
+**Instructions:** Write a small conclusion summarizing your findings. Add any information you find relevant. 
+
+<!-- Edit here -->
+
+# Perspective 
+
+**Instructions:** How would you adapt the analytic strategy to account for diploidy?  
+
+<!-- Edit here -->
+
