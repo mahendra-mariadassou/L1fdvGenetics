@@ -1,0 +1,14 @@
+---
+title: "ImmunoGenetics assignment"
+author: "Student A and student B"
+date: "Due date: June 3rd, 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+## DO NOT EDIT THIS CHUNCK
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 5, cache = FALSE)
+library(L1fdvGenetics)
+```
+
+## 

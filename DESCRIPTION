@@ -1,7 +1,7 @@
 Package: L1fdvGenetics
 Title: Companion self-learning R package to the Genetics Project
     of FDV bachelor
-Version: 0.0.0.9005
+Version: 0.0.0.900
 Authors@R: 
     person(given = "Mahendra",
            family = "Mariadassou",
@@ -17,3 +17,5 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.0
 Imports: 
     learnr
+Depends: 
+    R (>= 2.10)
