@@ -631,6 +631,8 @@ question("Based on the previous graph, what ranges of values would you consider 
          )
 ```
 
+**Remark** Our observed $\Delta \hat{\mu} = 0.67$ is unlikely to arise in data sets purposefully generated under $\Delta \mu = 0$. We observe as extreme values ($\geq 0.67$ in absolute value) in only 1 in 400 fake samples. In statistical terms, the **p value** is 1/400 (or 0.0025). Keep that concept in mind, it will be handy next year and when reading research articles.
+
 ### Assessing significance (III)
 
 Given our sample size ($n = 100$) and our data set, we conclude in this example that `G0` is associated to higher IgG1 levels but we were able to formalize our intuition. 
