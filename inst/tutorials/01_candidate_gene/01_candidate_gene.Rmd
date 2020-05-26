@@ -417,17 +417,17 @@ Let's do a thought experiment first. Assume that there are no differences betwee
 The function `create_fake()` does exactly that: it creates a fake dataset (as stated before), computes its contigency table and compute $\Delta \hat{p}$ on that data set. Run it several times (by clicking the `Run code` button).  
 
 ```{r create_fake_setup}
-create_fake <- function() {
-  data <- data.frame(
-    Organism  = 1:100, 
-    Genotype  = rep(c("G0", "G1"), times = c(49, 51)), 
-    Phenotype = factor(sample(c("Low", "High"), size = 100, replace = TRUE), levels = c("Low", "High")))
-  tab <- with(data, table(Genotype, Phenotype))
-  deltap <- -100 * diff(tab[, 2] / rowSums(tab))
-  print(tab)
-  cat(paste0("Delta p = ", round(deltap, digits = 2), "%"))
-  invisible(deltap)
-}
+# create_fake <- function() {
+#   data <- data.frame(
+#     Organism  = 1:100, 
+#     Genotype  = rep(c("G0", "G1"), times = c(49, 51)), 
+#     Phenotype = factor(sample(c("Low", "High"), size = 100, replace = TRUE), levels = c("Low", "High")))
+#   tab <- with(data, table(Genotype, Phenotype))
+#   deltap <- -100 * diff(tab[, 2] / rowSums(tab))
+#   print(tab)
+#   cat(paste0("Delta p = ", round(deltap, digits = 2), "%"))
+#   invisible(deltap)
+# }
 ```
 
 ```{r create_fake, exercise = TRUE}
@@ -583,15 +583,15 @@ Compare that the one-step estimator $\hat{\sigma}^2 = 1.13$ computed directly on
 We can now create many fake data sets using `create_fake_cont()`. Run the function several times to get a feeling of the typical values. 
 
 ```{r create_fake_cont_setup}
-create_fake_cont <- function() {
-  data <- data.frame(
-    Organism  = 1:100, 
-    Genotype  = rep(c("G0", "G1"), times = c(49, 51)), 
-    Phenotype = rnorm(100, mean = 10.21, sd = 1.08))
-  deltamu <- diff(with(data, tapply(X = Phenotype, INDEX = Genotype, FUN = mean)))
-  cat(paste0("Delta mu = ", round(deltamu, digits = 2)))
-  invisible(deltamu)
-}
+# create_fake_cont <- function() {
+#   data <- data.frame(
+#     Organism  = 1:100, 
+#     Genotype  = rep(c("G0", "G1"), times = c(49, 51)), 
+#     Phenotype = rnorm(100, mean = 10.21, sd = 1.08))
+#   deltamu <- diff(with(data, tapply(X = Phenotype, INDEX = Genotype, FUN = mean)))
+#   cat(paste0("Delta mu = ", round(deltamu, digits = 2)))
+#   invisible(deltamu)
+# }
 ```
 
 ```{r create_fake_cont, exercise = TRUE}
@@ -730,9 +730,9 @@ Up to an irrelevant infinitisemal multiplicative factor, $L(x_1, \dots, x_n; \mu
 Under $H_0$, all observations come from the same distribution $\mathcal{N}(\mu, \sigma^2)$. We don't know the true values of $\mu$, $\sigma^2$ but we can nevertheless compute the log-likelihood $L_{H_0}$ of our observations for test values. 
 
 ```{r likelihood_h0_setup}
-log_likelihood_H0 <- function(mu = 10, sigma = 1) {
-  sum(dnorm(data_cont$Phenotype, mean = mu, sd = sigma, log = TRUE))
-}
+# log_likelihood_H0 <- function(mu = 10, sigma = 1) {
+#   sum(dnorm(data_cont$Phenotype, mean = mu, sd = sigma, log = TRUE))
+# }
 ```
 
 Using `log_likelihood_H0()`, we can try to find a combination of parameters that maximizes the (log-)likelihood. 
@@ -806,12 +806,12 @@ question("How are the 100 organisms split across the 2 products?",
 Again, we don't know the true values of $\mu_0$, $\mu_1$ and $\sigma^2$ but we can nevertheless compute the log-likelihood $L_{H_1}$ of our observations for test values and try to maximize it. 
 
 ```{r likelihood_h1_setup}
-log_likelihood_H1 <- function(mu0 = 10, mu1 = 10, sigma = 1) {
-  with(data_cont, 
-       sum(dnorm(Phenotype[Genotype == "G0"], mean = mu0, sd = sigma, log = TRUE)) + 
-         sum(dnorm(Phenotype[Genotype == "G1"], mean = mu1, sd = sigma, log = TRUE))
-  )
-}
+# log_likelihood_H1 <- function(mu0 = 10, mu1 = 10, sigma = 1) {
+#   with(data_cont, 
+#        sum(dnorm(Phenotype[Genotype == "G0"], mean = mu0, sd = sigma, log = TRUE)) + 
+#          sum(dnorm(Phenotype[Genotype == "G1"], mean = mu1, sd = sigma, log = TRUE))
+#   )
+# }
 ```
 
 ```{r log_likelihood_h1, exercise = TRUE}
