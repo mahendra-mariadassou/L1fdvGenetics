@@ -143,3 +143,41 @@ rmarkdown::run(file = NULL,
                                                 package = "L1fdvGenetics"), 
                shiny_args = list(launch.browser = 1))
 ```
+
+## Assignement
+
+You can open the (empty) assignment template
+with:
+
+``` r
+file.edit(system.file("assignment/assignment.Rmd", package = "L1fdvGenetics"))
+```
+
+Or
+[download](https://raw.githubusercontent.com/mahendra-mariadassou/L1fdvGenetics/master/inst/assignment/assignment.Rmd)
+it from the web.
+
+**Make a copy and save it on your computer** (you can edit the file you
+just opened but you can’t save it).
+
+This is an Rmd (similar to a jupyter notebook). You can write R code in
+**code chuncks** (you shoudn’t have to, unless you attempt to detect QTL
+in Chromosome 2).
+
+![](inst/images/chunk-parts.png)
+
+You should **knit** the document to an html file once to get the raw
+results. You can do so by clicking on the knit button.
+
+![](inst/images/knit_button.png)
+
+You can also execute each chunck in the console using the small green
+triangle (note that you should execute chuncks in turn as a chunck may
+depend on previous chuncks).
+
+![](inst/images/run_code.png)
+
+When you’re done adding comments and editing the document (for example,
+hiding some output from the final reports), you should knit it to a html
+file and submit it to moodle or through a google form (further
+instructions will follow).
