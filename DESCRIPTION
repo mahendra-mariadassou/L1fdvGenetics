@@ -1,7 +1,7 @@
 Package: L1fdvGenetics
 Title: Companion self-learning R package to the Genetics Project
     of FDV bachelor
-Version: 0.0.1.000
+Version: 0.0.2.000
 Authors@R: 
     person(given = "Mahendra",
            family = "Mariadassou",
