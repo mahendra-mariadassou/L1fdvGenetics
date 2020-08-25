@@ -809,3 +809,11 @@ QTL analysis were not covered.
 We also gave some puzzling results without justification (where does the expression $\frac{1 - e^{-2d}}{2}$ for two markers separated by $d$ cM comes from?) because we don't have the mathematical tools yet (in this case the Poisson distribution) to give a proper justification. 
 
 It is nevertheless our hope that those lessons provided a solid foundation for your exploration and comprehension of QTL analysis. Good luck and feel free to ask questions!
+
+
+<!-- ## Advanced material  -->
+
+<!-- ### Understanding of the $(1 - e^{-2d})/2$ -->
+
+
+

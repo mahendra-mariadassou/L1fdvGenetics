@@ -11,7 +11,9 @@ The goal of `L1fdvGenetics` is to provide interactive tutorials for the
 Genetics project. Tutorials are packaged so you can install them on you
 computer and do the exercices without access to an internet connection.
 
-## Local Installation
+## Installation
+
+### Local installation
 
 You only need to perform each of the following steps **once**:
 
@@ -21,7 +23,7 @@ You only need to perform each of the following steps **once**:
 
 However each of them may take some time.
 
-### Installing R
+#### Installing R
 
 Go to the CRAN [webpage](https://cran.r-project.org/), select your OS
 and follow the instructions.
@@ -53,13 +55,13 @@ On **MacOS**: you may need **XCode**
     [page](https://mac.r-project.org/tools/), download the **Mandatory
     tools** and install them on your computer
 
-### Installing RStudio Desktop
+#### Installing RStudio Desktop
 
 Go to the
 [download](https://rstudio.com/products/rstudio/download/#download)
 page. Select, download and install the file corresponding to your OS.
 
-### Installing R packages
+#### Installing R packages
 
 Launch Rstudio (by clicking on the corresponding icon) and execute the
 following commands in the console
@@ -69,7 +71,7 @@ install.packages("remotes")
 install.packages("learnr") 
 ```
 
-## Installation (II)
+#### Installation (II)
 
 You need to install the tutorials **every time** I update them
 (hopefully not too often)
@@ -86,7 +88,7 @@ remotes::install_github("mahendra-mariadassou/L1fdvGenetics")
 The tutorials included in `L1fdvGenetics` are lightweight and have no
 dependencies. It should be quite fast and not consume a lot of data.
 
-## Remote installation
+### Remote installation: Rstudio Cloud
 
 If you have trouble installing R on your computer, you can also use it
 on a remote server. **This is not the preferred solution as it’s limited
@@ -101,6 +103,16 @@ to 9 people**. Favor the local installation if you can.
   - Rstudio deploys the project on a remote server, **you don’t need to
     install anything else**
   - You can then start the tutorial as shown below
+
+### Remote installation: binder
+
+Alternatively, you can use create a remote R session to complete the
+tutorial by launching binder:
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mahendra-mariadassou/L1fdvGenetics/master)
+
+You only need a web browser, no account or anything. The main drawback
+of this solution (compared to the previous ones) is that you lose your
+progress each time you launch a new session.
 
 ## Starting a tutorial
 
@@ -146,8 +158,7 @@ rmarkdown::run(file = NULL,
 
 ## Assignement
 
-You can open the (empty) assignment template
-with:
+You can open the (empty) assignment template with:
 
 ``` r
 file.edit(system.file("assignment/assignment.Rmd", package = "L1fdvGenetics"))
