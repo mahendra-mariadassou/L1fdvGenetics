@@ -108,7 +108,7 @@ to 9 people**. Favor the local installation if you can.
 
 Alternatively, you can use create a remote R session to complete the
 tutorial by launching binder:
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mahendra-mariadassou/L1fdvGenetics/master)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mahendra-mariadassou/L1fdvGenetics/master?urlpath=rstudio)
 
 You only need a web browser, no account or anything. The main drawback
 of this solution (compared to the previous ones) is that you lose your
