@@ -122,7 +122,7 @@ subset(lod_data, LOD >= 2)
 
 # Perspective 
 
-**Instructions:** How would you adapt the analytic strategy to account for diploidy?  
+**Instructions:** How would you adapt the experimental and/or analytic strategy to account for an *additive* model?  
 
 <!-- Edit here -->
 
