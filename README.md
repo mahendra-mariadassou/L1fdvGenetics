@@ -4,7 +4,6 @@
 # L1fdvGenetics
 
 <!-- badges: start -->
-
 <!-- badges: end -->
 
 The goal of `L1fdvGenetics` is to provide interactive tutorials for the
@@ -17,9 +16,9 @@ computer and do the exercices without access to an internet connection.
 
 You only need to perform each of the following steps **once**:
 
-  - installing **R**
-  - installing **Rstudio**
-  - installing **R** packages `remotes` and `learnr`
+-   installing **R**
+-   installing **Rstudio**
+-   installing **R** packages `remotes` and `learnr`
 
 However each of them may take some time.
 
@@ -28,12 +27,10 @@ However each of them may take some time.
 Go to the CRAN [webpage](https://cran.r-project.org/), select your OS
 and follow the instructions.
 
-  - On Windows, you should just download and execute an .exe file.
-  - On MacOS, you should just download and execute a .pkg file.
-  - On Linux, you can get install R from the command line using
+-   On Windows, you should just download and execute an .exe file.
+-   On MacOS, you should just download and execute a .pkg file.
+-   On Linux, you can get install R from the command line using
     something like
-
-<!-- end list -->
 
 ``` bash
 ## If you're on Ubuntu
@@ -42,16 +39,16 @@ sudo apt-get install r-base
 
 On **Windows**: you may need **Rtools** and **git**
 
-  - **Rtools**: visit the dedicated
+-   **Rtools**: visit the dedicated
     [page](https://cran.r-project.org/bin/windows/Rtools/), download the
     suggested exe and install it on your computer
-  - **git**: visit the dedicated
+-   **git**: visit the dedicated
     [page](https://git-scm.com/download/win), download the suggested exe
     and install it on your computer
 
 On **MacOS**: you may need **XCode**
 
-  - **XCode**: visit the dedicated
+-   **XCode**: visit the dedicated
     [page](https://mac.r-project.org/tools/), download the **Mandatory
     tools** and install them on your computer
 
@@ -94,15 +91,15 @@ If you have trouble installing R on your computer, you can also use it
 on a remote server. **This is not the preferred solution as it’s limited
 to 9 people**. Favor the local installation if you can.
 
-  - Sign up on [Rstudio Cloud](https://rstudio.cloud/)
-  - Join the [Genetics
+-   Sign up on [Rstudio Cloud](https://rstudio.cloud/)
+-   Join the [Genetics
     project](https://rstudio.cloud/spaces/71850/join?access_code=Ojh4cBY8MsdNd44weVIZ6u5txVALu8l8wLriT99k)
-  - Choose ‘Join Space’
-  - Choose ‘Projects’ and select ‘Start’ (blue buttons)
+-   Choose ‘Join Space’
+-   Choose ‘Projects’ and select ‘Start’ (blue buttons)
     ![](inst/images/login_screen.png)
-  - Rstudio deploys the project on a remote server, **you don’t need to
+-   Rstudio deploys the project on a remote server, **you don’t need to
     install anything else**
-  - You can then start the tutorial as shown below
+-   You can then start the tutorial as shown below
 
 ### Remote installation: binder
 
@@ -126,12 +123,11 @@ tutorials) in the same R session.**
 ### Candidate gene (single marker) approach
 
 ``` r
-## Launch only one tutorial at the time!!
+## Launch only one tutorial at the time and restart R before doing so!!
 learnr::run_tutorial("01_candidate_gene", package = "L1fdvGenetics")
 ```
 
-If you have an error (occurs on Windows, with R 4.0.0), you can try the
-following command:
+If you have an error, you can try the following command:
 
 ``` r
 rmarkdown::run(file = NULL, 
@@ -143,7 +139,7 @@ rmarkdown::run(file = NULL,
 ### QTL detection by Simple Interval Mapping (SIM)
 
 ``` r
-## Launch only one tutorial at the time!!
+## Launch only one tutorial at the time and restart R before doing so!!
 learnr::run_tutorial("02_interval_mapping", package = "L1fdvGenetics")
 ```
 

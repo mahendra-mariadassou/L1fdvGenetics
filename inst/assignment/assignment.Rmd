@@ -1,7 +1,7 @@
 ---
 title: "ImmunoGenetics assignment"
-author: "Student A and student B"
-date: "Due date: June 3rd, 2020"
+author: "Student A and student B and student C"
+date: "Due date: June 3rd, 2021"
 output:
   html_document:
     code_folding: show
@@ -18,8 +18,8 @@ output:
 ## DO NOT EDIT THIS CHUNCK
 knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 5, cache = FALSE)
 library(L1fdvGenetics) ## Homework data and helper functions()
-data("hw_data")      ## Homework data: geno/phenotypes of the F1 mice
-data("genetic_map")  ## Homework data: genetic map
+data("hw_data")        ## Homework data: geno/phenotypes of the F2 mice
+data("genetic_map")    ## Homework data: genetic map
 ```
 
 # Goal 
