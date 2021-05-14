@@ -329,6 +329,7 @@ The goal of these tutorials is to help you understand the basics of genetic asso
 ## Simple Marker Analyses
 
 We're interested in the possible association between a *phenotype* (say `IgG1` levels) and a  *locus* (say the locus corresponding to gene `G`, with two alleles `G0` and `G1`, or `LEW` and `BN`). Assume for now for simplicity that:
+
 - gene `G` was selected based on expert knowledge (or previous results from the literature). 
 - you work under a *dominance* (rather than *additive* or *recessive*) assumption for allele `G1` so that the genotype at the locus can be coded `G1` if the rat has at a least one copy of allele `G1` at gene `G` (*i.e.* it is `G1\G1`, `G1\G0` or `G0\G1`) and coded `G0` if both alleles are `G0` (*i.e.* it is `G0\G0`). 
 
@@ -340,6 +341,7 @@ We can rephrase the association study as the following question **"Are IgG1 leve
 
 We assume first (again for simplicity) that the phenotype is discrete and takes only two values: `low` and `high`. To answer our question, we need to collect data first. 
 We consider a population of $n = 100$ rats. For each rat $i \in \{1, \dots\, n\}$, we measure its 
+
 - phenotype $x_i$ (`IgG1` level): `high` or `low`
 - genotype $g_i$ (under the dominance assumption): `G0` or `G1`
 
@@ -390,9 +392,9 @@ text(x = c(0.7, 1.9), y = c(25, 27), labels = "High", adj = c(0.5, 0), col = "bl
 text(x = c(0.7, 1.9), y = 1, labels = "Low", adj = c(0.5, 0), col = "white")
 ```
 
-In this toy dataset, there are 51% of `High` levels among `G0` rats and 49% among `G1` rats. The difference is $\Delta \hat{p} = \hat{p}_H^0 - \hat{p}_H^1 = $ 2%. 
+In this toy dataset, there are 51% of `High` levels among `G0` rats and 49% among `G1` rats. The difference is $\Delta\hat{p} = \hat{p}_H^0 - \hat{p}_H^1 = 2\%$. 
 
-Based on those results, we might be tempted to conclude that allele $G_0$ increases IgG1 levels. A tiny problem is that we don't known whether $\Delta \hat{p} = $ 2% is that big of a difference. After all, if two of our rats with `Low` levels had been `G0` instead of `G1`, the results would have been quite different...
+Based on those results, we might be tempted to conclude that allele $G_0$ increases IgG1 levels. A tiny problem is that we don't known whether $\Delta\hat{p} = 2\%$ is that big of a difference. After all, if two of our rats with `Low` levels had been `G0` instead of `G1`, the results would have been quite different...
 
 ```{r q3}
 question(
@@ -407,7 +409,7 @@ question(
 
 ### Assessing significance
 
-We saw in the previous part that $\Delta \hat{p} = $ 2% is not that big and that we can't draw strong conclusions from it. Indeed changing a mere two data points would revert our conclusions. As we expect our data set to be noisy (some rats might have incorrect genotypes and/or phenotypes), we'd like to know when we can confidently say anything about the genotype - phenotype link from $\Delta \hat{p}$. 
+We saw in the previous part that $\Delta \hat{p} = 2\%$ is not that big and that we can't draw strong conclusions from it. Indeed changing a mere two data points would revert our conclusions. As we expect our data set to be noisy (some rats might have incorrect genotypes and/or phenotypes), we'd like to know when we can confidently say anything about the genotype - phenotype link from $\Delta \hat{p}$. 
 
 We therefore need to determine what constitutes a *large difference* $\Delta \hat{p}$. In statistical term, it's called *assessing significance*. 
 
@@ -482,6 +484,7 @@ Given our sample size ($n = 100$) and our data set, we conclude in this example 
 We now assume that the phenotype is continuous and takes values in $\mathbb{R}$ (or $\mathbb{R}_+$ or some interval). No matter the nature of our phenotype, we still need to collect data. 
 
 We consider a population of $n = 100$ rats. For each rat $i \in \{1, \dots\, n\}$, we measure its
+
 - phenotype $x_i$ (`IgG1` level): any value in $\mathbb{R}$
 - genotype $g_i$ (allele of gene `G`): `G0` or `G1`
 
@@ -546,6 +549,7 @@ quiz(caption = "Estimators",
 Our best estimate of $\Delta \mu$ from the data is $\Delta \hat{\mu} = 0.67$. We'll use the same procedure as before to asses if this value is small and typical under $H_0$ (in the sense that we're likely to observe on real data sets if $\Delta \mu = 0$) or large and atypical under $H_0$ (in the sense that we're unlikely to observe on real data sets if $\Delta \mu = 0$). 
 
 In our data set, we have:
+
 - $n_0 = 49$
 - $n_1 = 51$ 
 - $\hat{\mu} = 10.21$ (average over rats from both genotypes, assuming $\Delta \mu = 0$). 
@@ -724,7 +728,7 @@ Up to an irrelevant infinitisemal multiplicative factor, $L(x_1, \dots, x_n; \mu
 
 **Remark:** Since $(x_1, \dots, x_n)$ depend only on the data, we often only consider $L$ as a function of $\mu$ and $\sigma$. Furthermore and since $L$ is a product of many small terms, it is often more convenient in practice to compute and work with the log-likelihood rather than with the likelihood. 
 
-### Likelihood under $H_0$
+### Likelihood under $H_0$ (I)
 
 Under $H_0$, all observations come from the same distribution $\mathcal{N}(\mu, \sigma^2)$. We don't know the true values of $\mu$ and $\sigma^2$ but we can nevertheless compute the log-likelihood $L_{H_0}$ of our observations for test values. 
 
@@ -734,14 +738,16 @@ Under $H_0$, all observations come from the same distribution $\mathcal{N}(\mu, 
 # }
 ```
 
-Using `log_likelihood_H0()`, we can try to find a combination of parameters that maximizes the (log-)likelihood. 
+Using `log_likelihood_H0()`, we can try to find a combination of parameters that maximizes the (log-)likelihood. Using `log_likelihood_H0()` in the following snippet, find the optimal values of $\mu$ and \sigma$. 
 
 ```{r log_likelihood_h0, exercise = TRUE}
 log_likelihood_H0(mu = 10, sigma = 1)
 log_likelihood_H0(mu = 15, sigma = 5)
 ```
 
-**Remark**: This is of course a maximisation problem. The optimal values $\hat{\mu}$ and $\hat{\sigma}$ can be found by setting the partial derivatives $\frac{\partial L(\mu, \sigma)}{\partial \mu}$ and $\frac{\partial L(\mu, \sigma)}{\partial \sigma}$ to $0$ and solving the equations for $\mu$ and $\sigma$. If you're brave enough, you can do that (working with the log-likelihood makes derivations much easier) and find the exact relation between $\hat{\mu}, \hat{\sigma}$ and $(x_1, \dots, x_n)$. 
+### Likelihood under $H_0$ (II)
+
+This is of course a maximisation problem. The optimal values $\hat{\mu}$ and $\hat{\sigma}$ can be found by setting the partial derivatives $\frac{\partial L(\mu, \sigma)}{\partial \mu}$ and $\frac{\partial L(\mu, \sigma)}{\partial \sigma}$ to $0$ and solving the equations for $\mu$ and $\sigma$. If you're brave enough, you can do that (working with the log-likelihood makes derivations much easier) and find the exact relation between $\hat{\mu}, \hat{\sigma}$ and $(x_1, \dots, x_n)$. 
 
 We look at the whole curve $(\mu, \sigma) \mapsto L_{H_0}(\mu, \sigma)$ using a contour plot. Dark colors correspond to high values of $L_{H_0}$ and light colors colors to low values and levels of the function are shown as blacks contour. 
 
@@ -782,7 +788,7 @@ text(x = 10.21, y = -1100, labels = expression(hat(mu)==10.21),
 
 We call $L_{H_0}(\hat{\mu}, \hat{\sigma})$ the **likelihood of $H_0$**. 
 
-### Likelihood under $H_1$
+### Likelihood under $H_1$ (I)
 
 We can do the same thing under $H_1$ with a a few notable differences. 
 - there are now **two** distributions $\mathcal{N}(\mu_0, \sigma^2)$ and $\mathcal{N}(\mu_1, \sigma^2)$
@@ -817,6 +823,8 @@ Again, we don't know the true values of $\mu_0$, $\mu_1$ and $\sigma^2$ but we c
 log_likelihood_H1(mu0 = 10, mu1 = 10, sigma = 1)
 log_likelihood_H1(mu0 = 15, mu1 = 15, sigma = 5)
 ```
+
+### Likelihood under $H_1$ (II)
 
 **Remark**: This is again of course a maximisation problem that you can solve by setting the partial derivatives to $0$ if you're brave enough.  
 
@@ -874,4 +882,8 @@ question("If we want the presence of a QTL to be 1000 times more probable than i
 
 
 In our data set, the LOD is $2.01$ and the effect of the QTL is $\Delta \hat{\mu} = 0.67$. It's quite small (the coefficient of variation $\frac{\Delta \hat{\mu}}{\hat{\mu}}  = \frac{0.67}{10.21} = 0.065$ or 6.5%) but nevertheless significant: you're unlikely to observe it base on pure randomness. 
+
+## Conclusion
+
+Armed with your new knowledge, you can now test for a genotype / phenotype association at any candidate locus. The next tutorial focuses on testing across **many** loci. 
 
