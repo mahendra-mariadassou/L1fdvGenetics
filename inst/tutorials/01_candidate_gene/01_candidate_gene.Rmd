@@ -13,7 +13,7 @@ library(learnr)
 ### Functions --------------------------
 create_fake <- function() {
   data <- data.frame(
-    Organism  = 1:100, 
+    rat  = 1:100, 
     Genotype  = rep(c("G0", "G1"), times = c(49, 51)), 
     Phenotype = factor(sample(c("Low", "High"), size = 100, replace = TRUE), levels = c("Low", "High")))
   tab <- with(data, table(Genotype, Phenotype))
@@ -24,7 +24,7 @@ create_fake <- function() {
 }
 create_fake_cont <- function() {
   data <- data.frame(
-    Organism  = 1:100, 
+    rat  = 1:100, 
     Genotype  = rep(c("G0", "G1"), times = c(49, 51)), 
     Phenotype = rnorm(100, mean = 10.21, sd = 1.08))
   deltamu <- diff(with(data, tapply(X = Phenotype, INDEX = Genotype, FUN = mean)))
@@ -42,14 +42,14 @@ log_likelihood_H1 <- function(mu0 = 10, mu1 = 10, sigma = 1) {
 }
 ### data ------------------------------------
 # set.seed(2012)
-# data <- data.frame(Organism  = 1:100, 
+# data <- data.frame(rat  = 1:100, 
 #                    Genotype  = sample(c("G0", "G1"), size = 100, replace = TRUE), 
 #                    Phenotype = factor(sample(c("Low", "High"), size = 100, replace = TRUE), levels = c("Low", "High")))
 # Genotype <- sample(c("G0", "G1"), size = 100, replace = TRUE) 
-# data_cont <- data.frame(Organism  = 1:100, 
+# data_cont <- data.frame(rat  = 1:100, 
 #                    Genotype  = Genotype,
 #                    Phenotype = rnorm(100, 10, 1) + ifelse(Genotype == "G0", 0.5, 0))
-data <- structure(list(Organism = 1:100, Genotype = structure(c(2L, 1L, 
+data <- structure(list(Rat = 1:100, Genotype = structure(c(2L, 1L, 
 2L, 2L, 2L, 2L, 1L, 1L, 1L, 1L, 2L, 2L, 2L, 1L, 1L, 2L, 1L, 2L, 
 1L, 1L, 1L, 2L, 2L, 1L, 2L, 1L, 1L, 2L, 2L, 2L, 1L, 1L, 1L, 1L, 
 2L, 2L, 2L, 2L, 2L, 2L, 1L, 2L, 1L, 1L, 2L, 2L, 2L, 1L, 1L, 2L, 
@@ -75,7 +75,7 @@ Genotype <- c("G0", "G1", "G0", "G0", "G1", "G1", "G1", "G0", "G1", "G1",
 "G0", "G1", "G0", "G0", "G1", "G0", "G0", "G0", "G1", "G1", "G1", 
 "G0", "G1", "G0", "G1", "G0", "G1", "G1", "G1", "G1", "G0", "G1", 
 "G0", "G0")
-data_cont <- structure(list(Organism = 1:100, Genotype = structure(c(1L, 2L, 
+data_cont <- structure(list(Rat = 1:100, Genotype = structure(c(1L, 2L, 
 1L, 1L, 2L, 2L, 2L, 1L, 2L, 2L, 2L, 2L, 1L, 2L, 2L, 1L, 2L, 1L, 
 2L, 1L, 1L, 2L, 2L, 1L, 1L, 2L, 2L, 1L, 1L, 1L, 1L, 1L, 2L, 1L, 
 2L, 2L, 1L, 2L, 1L, 1L, 1L, 2L, 2L, 1L, 1L, 1L, 2L, 1L, 2L, 1L, 
@@ -328,98 +328,97 @@ The goal of these tutorials is to help you understand the basics of genetic asso
 
 ## Simple Marker Analyses
 
-We're interested in the possible association between a *phenotype* (say `IgG1` levels) and a  *genotype* (say gene `G` with two alleles `G0` and `G1`, or `LEW` and `BN`). Assume for now for simplicity that:
+We're interested in the possible association between a *phenotype* (say `IgG1` levels) and a  *locus* (say the locus corresponding to gene `G`, with two alleles `G0` and `G1`, or `LEW` and `BN`). Assume for now for simplicity that:
 - gene `G` was selected based on expert knowledge (or previous results from the literature). 
-- you work with haploid organisms so that each organism only has *one* copy of gene `G`. 
+- you work under a *dominance* (rather than *additive* or *recessive*) assumption for allele `G1` so that the genotype at the locus can be coded `G1` if the rat has at a least one copy of allele `G1` at gene `G` (*i.e.* it is `G1\G1`, `G1\G0` or `G0\G1`) and coded `G0` if both alleles are `G0` (*i.e.* it is `G0\G0`). 
 
-**Remark:** The haploid assumption is convenient but of course slightly unrealistic. It's however reasonable when we work with organisms with organisms from highly inbred lineages (such as Lewis and BN mices) where both copies of the chromosomes are almost identicial. We can also lift the assumption to accomodate diploidy but we then need to specify whether your gene has *dominant*, *additive* or *recessive* effect. We'll ignore it for now. 
+**Remark:** The dominance assumption is convenient for this tutorial as it allows us to work with only two *effective* genotypes. There are of courses always 4 (`G1\G1`, `G1\G0`, `G0\G1` and `G0\G0` where the maternal allele comes first) but we can recode them as 2 for our purpose. We could do the same under a recessive assumption (with a different coding) but would need to work with more categories under an additive assumption. We could also work with haploid rats. We'll stick with the dominance assumption for now. 
 
-We can rephrase the association study as the following question **"Are IgG1 levels different in organisms with alleles `G0` and `G1`?"**. We'll try to answer that question step-by-step. 
+We can rephrase the association study as the following question **"Are IgG1 levels different in rats with genotypes `G0` and `G1`?"**. We'll try to answer that question step-by-step. 
 
 ## Discrete phenotype
 
 We assume first (again for simplicity) that the phenotype is discrete and takes only two values: `low` and `high`. To answer our question, we need to collect data first. 
-
-We consider a population of $n = 100$ organisms. For each organism $i \in \{1, \dots\, n\}$, we measure its 
+We consider a population of $n = 100$ rats. For each rat $i \in \{1, \dots\, n\}$, we measure its 
 - phenotype $x_i$ (`IgG1` level): `high` or `low`
-- genotype $g_i$ (allele of gene `G`): `G0` or `G1`
+- genotype $g_i$ (under the dominance assumption): `G0` or `G1`
 
-The data might look like this (first 10 organisms):
+For conciseness, we refer to rats with genotype `G0` (resp. `G1`) as `G0` rats (resp. `G1` rats). The data might look like this (first 10 rats):
 
 ```{r}
 knitr::kable(head(data))
 ```
 
-To answer our data, we first summarize the data into a *contigency table*: 
+To answer our question, we first summarize the data into a *contigency table*: 
 
 ```{r}
 with(data, table(Genotype, Phenotype))
 ```
 
-To make we read the table correctly, let's answer a few questions:
+To make sure we read the table correctly, let's answer a few questions:
 
 ```{r q1}
 question(
-  "What's the proportion $p_H^0$ of `High` IgG1 levels among `G0` organisms?",
+  "What's the proportion $p_H^0$ of `High` IgG1 levels among `G0` rats?",
   answer("$p_H^0 = 0.51$", correct = TRUE),
-  answer("$p_H^0 = 0.50$", correct = FALSE, message = "Compute carefully the number of `G0` organisms"),
+  answer("$p_H^0 = 0.50$", correct = FALSE, message = "Compute carefully the number of `G0` rats"),
   allow_retry = TRUE,
-  post_message = "This a double entry table. There are 25 `G0` organisms with `High` IgG1 levels and 24 `G0` organisms with `Low` IgG1 levels. In total there are 24+25=49 `G0` organisms, of which a proportion 25/49=0.51 have `High` IgG1 levels."
+  post_message = "This a double entry table. There are 25 `G0` rats with `High` IgG1 levels and 24 `G0` rats with `Low` IgG1 levels. In total there are 24+25=49 `G0` rats, of which a proportion 25/49=0.51 have `High` IgG1 levels."
 )
 ```
 
 ```{r q2}
 question(
-  "What's the proportion $p_H^1$ of `High` IgG1 levels among `G1` organisms?",
+  "What's the proportion $p_H^1$ of `High` IgG1 levels among `G1` rats?",
   answer("$p_H^1 = 0.0.49$", correct = TRUE),
-  answer("$p_H^1 = 0.50$", correct = FALSE, message = "Compute carefully the number of `G1` organisms"),
+  answer("$p_H^1 = 0.50$", correct = FALSE, message = "Compute carefully the number of `G1` rats"),
   allow_retry = TRUE,
-  post_message = "This a double entry table. There are 25 `G0` organisms with `High` IgG1 levels and 26 `G0` organisms with `Low` IgG1 levels. In total there are 26+25=51 `G1` organisms, of which a proportion 25/51=0.49 have `High` IgG1 levels."
+  post_message = "This a double entry table. There are 25 `G0` rats with `High` IgG1 levels and 26 `G0` rats with `Low` IgG1 levels. In total there are 26+25=51 `G1` rats, of which a proportion 25/51=0.49 have `High` IgG1 levels."
 )
 ```
 
-In the following, I will use $p_H^0$ to denote the true (and unknown) proportion in the full population of `G0` organisms and $\hat{p}_H^0$ the observed proportion (in our sample). Think of $\hat{p}_H^0$ as a noisy version of $p_H^0$. 
+In the following, I will use $p_H^0$ to denote the true (and unknown) proportion in the full population of `G0` rats and $\hat{p}_H^0$ the observed proportion (in our sample). Think of $\hat{p}_H^0$ as a noisy version of $p_H^0$. 
 
 ### Comparing proportions 
 
 ```{r, fig.width=5}
 barplot(height = cbind(c(24, 25), c(26, 25)), names.arg = c("G0", "G1"), 
         xlab = "Genotype", 
-        ylab = "Nb. organisms"
+        ylab = "Nb. rats"
         )
 text(x = c(0.7, 1.9), y = c(25, 27), labels = "High", adj = c(0.5, 0), col = "black")
 text(x = c(0.7, 1.9), y = 1, labels = "Low", adj = c(0.5, 0), col = "white")
 ```
 
-In this toy dataset, there are 51% of `High` levels among `G0` organisms and 49% among `G1` organisms. The difference is $\Delta \hat{p} = \hat{p}_H^0 - \hat{p}_H^1 = $ 2%. 
+In this toy dataset, there are 51% of `High` levels among `G0` rats and 49% among `G1` rats. The difference is $\Delta \hat{p} = \hat{p}_H^0 - \hat{p}_H^1 = $ 2%. 
 
-Based on those results, we might be tempted to conclude that allele $G_0$ increases IgG1 levels. A tiny problem is that we don't known whether $\Delta \hat{p} = $ 2% is that big of a difference. After all, if two of our organisms with `Low` levels had been `G0` instead of `G1`, the results would have been quite different...
+Based on those results, we might be tempted to conclude that allele $G_0$ increases IgG1 levels. A tiny problem is that we don't known whether $\Delta \hat{p} = $ 2% is that big of a difference. After all, if two of our rats with `Low` levels had been `G0` instead of `G1`, the results would have been quite different...
 
 ```{r q3}
 question(
-  "Assume that two organisms with `Low` levels had been `G0` instead of `G1`. What would be value of $\\Delta \\hat{p}$?",
+  "Assume that two rats with `Low` levels had been `G0` instead of `G1`. What would be value of $\\Delta \\hat{p}$?",
   answer("$\\Delta \\hat{p} = 2$%", correct = FALSE, message = "You changed the data, $\\Delta \\hat{p}$ should surely change as a result."),
   answer("$\\Delta \\hat{p} = 0$%", correct = FALSE, message = "Try again."),
   answer("$\\Delta \\hat{p} = -2$%", correct = TRUE),
   allow_retry = TRUE,
-  post_message = "Changing the genotype of these two organisms leads to the same contingency table as before but with rows `G0` and `G1` switched. The value of $\\Delta \\hat{p}$ therefore just changes sign. You can also do the full computation to convince yourself."
+  post_message = "Changing the genotype of these two rats leads to the same contingency table as before but with rows `G0` and `G1` switched. The value of $\\Delta \\hat{p}$ therefore just changes sign. You can also do the full computation to convince yourself."
 )
 ```
 
 ### Assessing significance
 
-We saw in the previous part that $\Delta \hat{p} = $ 2% is not that big and that we can't draw strong conclusions from it. Indeed changing a mere two data points would revert our conclusions. As we expect our data set to be noisy (some organisms might have incorrect genotypes and/or phenotypes), we'd like to know when we can confidently say anything about the genotype - phenotype link from $\Delta \hat{p}$. 
+We saw in the previous part that $\Delta \hat{p} = $ 2% is not that big and that we can't draw strong conclusions from it. Indeed changing a mere two data points would revert our conclusions. As we expect our data set to be noisy (some rats might have incorrect genotypes and/or phenotypes), we'd like to know when we can confidently say anything about the genotype - phenotype link from $\Delta \hat{p}$. 
 
 We therefore need to determine what constitutes a *large difference* $\Delta \hat{p}$. In statistical term, it's called *assessing significance*. 
 
-Let's do a thought experiment first. Assume that there are no differences between genotypes `G0` and `G1` (or in formal terms that ). The (observed) proportion of `High` levels in the *whole* population is $\hat{p}_H = \frac{25+25}{25+25+24+26} = \frac{1}{2}$. We had $n_0 = 49$ `G0` organisms and $n_1 = 51$ `G1`  and in our original data set. Let's create fake data sets by assuming that each organism has `High` levels with probability $p_H = 0.5$ (and therefore `Low` levels with probability $p_L = 0.5$). Although called fake, we could have observed every single one of them if $p_H^0 = p_H^1 = p_H = 0.5$. 
+Let's do a thought experiment first. Assume that there are no differences between genotypes `G0` and `G1` (or in formal terms that $\Delta p = 0$). The (observed) proportion of `High` levels in the *whole* population is $\hat{p}_H = \frac{25+25}{25+25+24+26} = \frac{1}{2}$. We had $n_0 = 49$ `G0` rats and $n_1 = 51$ `G1`  and in our original data set. Let's create fake data sets by assuming that each rat has `High` levels with probability $p_H = 0.5$ (and therefore `Low` levels with probability $p_L = 0.5$). Although called *fake*, we could have observed every single one of those data sets if $p_H^0 = p_H^1 = p_H = 0.5$. 
 
 The function `create_fake()` does exactly that: it creates a fake dataset (as stated before), computes its contigency table and compute $\Delta \hat{p}$ on that data set. Run it several times (by clicking the `Run code` button).  
 
 ```{r create_fake_setup}
 # create_fake <- function() {
 #   data <- data.frame(
-#     Organism  = 1:100, 
+#     Rat  = 1:100, 
 #     Genotype  = rep(c("G0", "G1"), times = c(49, 51)), 
 #     Phenotype = factor(sample(c("Low", "High"), size = 100, replace = TRUE), levels = c("Low", "High")))
 #   tab <- with(data, table(Genotype, Phenotype))
@@ -446,14 +445,13 @@ question("Would you say $\\Delta \\hat{p}$ is",
 
 ### Assessing significance (II)
 
-The fake datasets from the previous section informed us that, **even when there are no differences between `G0` and `G1`**, it's quite common to observe values of $\Delta \hat{p}$ as low as -15% and as high as 15% based on sheer luck (see graph, based on 200 calls to `create_fake()`). $\Delta \hat{p} = 2$% is therefore quite typical and not large enough to conclude that `G0` and `G1` are different. 
+The fake datasets from the previous section informed us that, **even when there are no differences between `G0` and `G1`**, it's quite common to observe values of $\Delta \hat{p}$ as low as -15% and as high as 15% based on sheer luck (see following graph, based on 200 calls to `create_fake()`). $\Delta \hat{p} = 2$% is therefore quite typical and not large enough to conclude that `G0` and `G1` are different. 
 
 ```{r results='hide'}
 hist(values, main = NULL, xlab = expression(Delta*hat(p)~from~fake~samples), freq = TRUE)
 abline(v = 2, col = "red")
 text(x = 2, y = 30, font = 2, col = "red", expression(Delta*hat(p)==2), adj = c(0, 0.5))
 ```
-
 
 ```{r q5}
 question("Based on the previous graph, what ranges of values would you consider atypical for $\\Delta \\hat{p}$?", 
@@ -475,19 +473,19 @@ Based on the previous graph, we can formulate the following rules:
 - If $\Delta \hat{p} < -18$, `G0` is **significantly** associated with `High` levels (and by symmetry `G1` is **significantly** associated with `Low` levels)
 - If $\Delta \hat{p} > 18$, `G0` is **significantly** associated with `Low` levels (and by symmetry `G0` is **significantly** associated with `High` levels)
 
-Given our sample size ($n = 100$) and our data set, we conclude in this example that there is no associations. 
+Given our sample size ($n = 100$) and our data set, we conclude in this example that there is no association between the genotype and the phenotype. 
 
-**Remark**: What we just did to find associations is called a *test of equality of proportions* and can be used in a much broader context. Formally and with our notation, we tried to compare the so-called *null hypothesis* $H_0: p_H^0 = p_H^1$ against the so-called *alternative hypothesis* $H_1: p_H^0 \neq p_H^1$ using $\Delta p = p_H^0 - p_H^1$. Since the true value of $\Delta p$, we *estimated* from the observations by means of $\Delta \hat{p}$. We then ran simulations to find the typical range of $\Delta \hat{p}$ under $H_0$ and look whether $\Delta \hat{p}$ fell in that range or not. Keep a few of those terms in mind, you'll meet them again next year...
+**Remark**: What we just did to find associations is called a *test of equality of proportions* and can be used in a much broader context. Formally and with our notation, we tried to compare the so-called *null hypothesis* $H_0: p_H^0 = p_H^1$ against the so-called *alternative hypothesis* $H_1: p_H^0 \neq p_H^1$ using the *parameter* $\Delta p = p_H^0 - p_H^1$. Since the *true* value of $\Delta p$ is *unkown*, we *estimated* it from the observations by means of $\Delta \hat{p}$. We then ran simulations to find the typical range of $\Delta \hat{p}$ under $H_0$ and look whether $\Delta \hat{p}$ fell in that range or not. Keep a few of those terms in mind, you'll meet them again next year...
 
 ## Continuous phenotype
 
 We now assume that the phenotype is continuous and takes values in $\mathbb{R}$ (or $\mathbb{R}_+$ or some interval). No matter the nature of our phenotype, we still need to collect data. 
 
-We consider a population of $n = 100$ organisms. For each organism $i \in \{1, \dots\, n\}$, we measure its
+We consider a population of $n = 100$ rats. For each rat $i \in \{1, \dots\, n\}$, we measure its
 - phenotype $x_i$ (`IgG1` level): any value in $\mathbb{R}$
 - genotype $g_i$ (allele of gene `G`): `G0` or `G1`
 
-The data might look like this (first 10 organisms):
+The data might look like this (first 10 rats):
 
 ```{r}
 knitr::kable(head(data_cont))
@@ -550,9 +548,9 @@ Our best estimate of $\Delta \mu$ from the data is $\Delta \hat{\mu} = 0.67$. We
 In our data set, we have:
 - $n_0 = 49$
 - $n_1 = 51$ 
-- $\hat{\mu} = 10.21$ (average over organisms from both genotypes, assuming $\Delta \mu = 0$). 
+- $\hat{\mu} = 10.21$ (average over rats from both genotypes, assuming $\Delta \mu = 0$). 
 
-To repeat the procedure used in the discrete setting, we need to create fake data sets with 49 organisms from `G0`, 51 from `G1` and all phenotypes sampled from the same distribution (\emph{i.e.} independently of the genotype). Unlike the discrete setting, where the value was either `Low` or `High`, the value can be any number here so we need to specify a proper probability distribution on $\mathbb{R}$. We'll use the famous gaussian distribution. 
+To repeat the procedure used in the discrete setting, we need to create fake data sets with 49 rats from `G0`, 51 from `G1` and all phenotypes sampled from the same distribution (\emph{i.e.} independently of the genotype). Unlike the discrete setting, where the value was either `Low` or `High`, the value can be any number here so we need to specify a proper *probability distribution* on $\mathbb{R}$. We'll use the famous gaussian distribution. 
 
 ```{r, fig.width=4.14, fig.height=4}
 par(xpd = TRUE, mar = c(2, 2, 2, 2))
@@ -569,23 +567,22 @@ The gaussian distribution has two parameters:
 - a mean $\mu$ that we can set equal to $\hat{\mu} = 10.21$
 - a variance $\sigma^2$. 
 
-We can estimate $\sigma^2$ in one step from the whole dataset, or in two steps from each genotypes first and then pool the results. For reasons that will be much clearer next year when you study gaussian variables adn the $t-test$, it's smarter to use the two-steps estimator. 
+We can estimate $\sigma^2$ in one step from the whole dataset, or in two steps from each genotype first and then pool the results. For reasons that will be much clearer next year when you study gaussian variables and the $t-test$, it's smarter to use the two-steps estimator. 
 
 - The variance in genotype `G0` is $\hat{\sigma}^2_0 = 1.02$
 - The variance in genotype `G1` is $\hat{\sigma}^2_1 = 1.15$
 - The pooled variance is $\hat{\sigma}^2 = \frac{(n_0 - 1)\hat{\sigma}^2_0 + (n_1 - 1)\hat{\sigma}^2_1}{n_0 + n_1 - 2} = 1.09$
 
-Compare that the one-step estimator $\hat{\sigma}^2 = 1.13$ computed directly on the whole population. 
+Compare that to the one-step estimator $\hat{\sigma}^2 = 1.13$ computed directly on the whole population. 
 
-**Remarks** Note that $\hat{\sigma}^2$ is nothing but a weighted average of $\hat{\sigma}^2_0$ and $\hat{\sigma}^2_1$. The weights are not exactly $n_0$ and $n_1$ for reasons that would hard to understand right now but will make sense next year. 
-
+**Remarks** Note that $\hat{\sigma}^2$ is nothing but a weighted average of $\hat{\sigma}^2_0$ and $\hat{\sigma}^2_1$. The weights are not exactly $n_0$ and $n_1$ but rather $n_0 - 1$ and $n_1 - 1$ for reasons that would hard to understand right now but will make sense next year (in a nutshell, you *pay the price* of estimating the mean phenotype of each group, which costs you one degree of freedom, don't worry if it doesn't make sense yet). 
 
 We can now create many fake data sets using `create_fake_cont()`. Run the function several times to get a feeling of the typical values. 
 
 ```{r create_fake_cont_setup}
 # create_fake_cont <- function() {
 #   data <- data.frame(
-#     Organism  = 1:100, 
+#     Rat  = 1:100, 
 #     Genotype  = rep(c("G0", "G1"), times = c(49, 51)), 
 #     Phenotype = rnorm(100, mean = 10.21, sd = 1.08))
 #   deltamu <- diff(with(data, tapply(X = Phenotype, INDEX = Genotype, FUN = mean)))
@@ -644,8 +641,8 @@ Given our sample size ($n = 100$) and our data set, we conclude in this example 
 In the previous section, we presented the principle of association-testing in simple settings. We built rules to help us decide whether a loci was siginificantly associated to a phenotypic response. 
 
 In this section, we go further and quantify the evidence supporting this association. To do so, we need to compute and compare two quantities:
-- the probability of observing our datset under $H_0$ (*i.e* if there is no effect of $G$ on IgG1 levels)
-- the probability of observing our datset under $H_1$ (*i.e* if there is an effect of $G$ on IgG1 levels)
+- the probability of observing our datset under $H_0$ (*i.e* if there is **no effect** of the genotype at locus $G$ on IgG1 levels)
+- the probability of observing our datset under $H_1$ (*i.e* if there is **an effect** of the genotype at locus $G$ on IgG1 levels)
 
 For ease of exposition, we'll focus on the continuous setting and introduce the concepts of **likelihood** and **odds-ratio**. 
 
@@ -674,7 +671,7 @@ text(x = 0.5, y = dnorm(1), pos = 3, cex = 2, labels = expression(2*sigma))
 text(x = 4, y = 0, labels = "Phenotype", pos = 1)
 ```
 
-A gaussian variable $X$ with mean $\mu$ and variance $\sigma^2$ is noted $X \sim \mathcal{N}(\mu, \sigma^2)$ and has density:
+A gaussian variable $X$ with mean $\mu$ and variance $\sigma^2$ is noted $X \sim \mathcal{N}(\mu, \sigma^2)$ and has density (remember your homework?):
 $$
 f_{\mu,\sigma^2}(x) = \frac{1}{\sqrt{2\pi}\sigma}e^{-\frac{(x - \mu)^2}{2\sigma^2}}
 $$
@@ -729,7 +726,7 @@ Up to an irrelevant infinitisemal multiplicative factor, $L(x_1, \dots, x_n; \mu
 
 ### Likelihood under $H_0$
 
-Under $H_0$, all observations come from the same distribution $\mathcal{N}(\mu, \sigma^2)$. We don't know the true values of $\mu$, $\sigma^2$ but we can nevertheless compute the log-likelihood $L_{H_0}$ of our observations for test values. 
+Under $H_0$, all observations come from the same distribution $\mathcal{N}(\mu, \sigma^2)$. We don't know the true values of $\mu$ and $\sigma^2$ but we can nevertheless compute the log-likelihood $L_{H_0}$ of our observations for test values. 
 
 ```{r likelihood_h0_setup}
 # log_likelihood_H0 <- function(mu = 10, sigma = 1) {
@@ -789,7 +786,7 @@ We call $L_{H_0}(\hat{\mu}, \hat{\sigma})$ the **likelihood of $H_0$**.
 
 We can do the same thing under $H_1$ with a a few notable differences. 
 - there are now **two** distributions $\mathcal{N}(\mu_0, \sigma^2)$ and $\mathcal{N}(\mu_1, \sigma^2)$
-- the log-likelihood should treat organisms with genotype `G0` and `G1` separately. 
+- the log-likelihood should treat rats with genotype `G0` and `G1` separately. 
 
 We thus consider the following function
 
@@ -798,9 +795,9 @@ L_{H_1}(x_1, \dots, x_n; \mu_0, \mu_1, \sigma) = \prod_{i:g_i = G0} f_{\mu_0,\si
 $$
 
 ```{r q10}
-question("How are the 100 organisms split across the 2 products?",
+question("How are the 100 rats split across the 2 products?",
          answer("49 / 51", correct = TRUE), 
-         answer("50 / 50", message = "Really? How many organisms with genotype `G0` do we have."), 
+         answer("50 / 50", message = "Really? How many rats with genotype `G0` do we have."), 
          answer("51 / 49", message = "Maybe you mixed up `G0` and `G1`"), 
          allow_retry = TRUE, random_answer_order = TRUE)
 ```
@@ -862,7 +859,7 @@ $$
 
 Note that there is a slight abuse of notation here as the $\hat{\sigma}$ in the numerator ($\hat{\sigma}=1.08$) is not the same as the one in the denominator ($\hat{\sigma}=1.13$). 
 
-As stated in [Lander and Botstein (1989)](https://www.genetics.org/content/121/1/185), the LOD score *essentially indicates how much  more probable the data are to have arisen assuming the presence of a QTL [read $H_1: \Delta \mu \neq 0$] than assuming its absence [read $H_1: \Delta \mu = 0$].*
+As stated in [Lander and Botstein (1989)](https://www.genetics.org/content/121/1/185), the LOD score *essentially indicates how much more probable the data are to have arisen assuming the presence of a QTL [read $H_1: \Delta \mu \neq 0$] than assuming its absence [read $H_1: \Delta \mu = 0$].*
 
 We usually consider LOD higher than 2 or 3 as strong evidence for association between the loci and the phenotype, or in other words, as strong evidence for the presence of a QTL. 
 
@@ -876,6 +873,5 @@ question("If we want the presence of a QTL to be 1000 times more probable than i
 ```
 
 
-In our data set, the LOD is $2.01$ and the effect of the QTL is $\Delta \hat{\mu} = 0.67$. It's quite small (the coefficient of variation $\frac{\Delta \hat{\mu}}{\hat{\mu}}  = \frac{0.67}{10.21} = 0.065$ or 6.5%) but nevertheless significant. 
-
+In our data set, the LOD is $2.01$ and the effect of the QTL is $\Delta \hat{\mu} = 0.67$. It's quite small (the coefficient of variation $\frac{\Delta \hat{\mu}}{\hat{\mu}}  = \frac{0.67}{10.21} = 0.065$ or 6.5%) but nevertheless significant: you're unlikely to observe it base on pure randomness. 
 
