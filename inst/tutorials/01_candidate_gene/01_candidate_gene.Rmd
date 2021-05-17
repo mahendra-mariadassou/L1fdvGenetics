@@ -472,8 +472,8 @@ question("Based on the previous graph, what ranges of values would you consider 
 Based on the previous graph, we can formulate the following rules:
 
 - If $|\Delta \hat{p}| < 18$, we can't conclude on differences between `G0` and `G1` and therefore on association between either genotype and either phenotype. 
-- If $\Delta \hat{p} < -18$, `G0` is **significantly** associated with `High` levels (and by symmetry `G1` is **significantly** associated with `Low` levels)
-- If $\Delta \hat{p} > 18$, `G0` is **significantly** associated with `Low` levels (and by symmetry `G0` is **significantly** associated with `High` levels)
+- If $\Delta \hat{p} > 18$, `G0` is **significantly** associated with `High` levels (and by symmetry `G1` is **significantly** associated with `Low` levels)
+- If $\Delta \hat{p} < -18$, `G0` is **significantly** associated with `Low` levels (and by symmetry `G0` is **significantly** associated with `High` levels)
 
 Given our sample size ($n = 100$) and our data set, we conclude in this example that there is no association between the genotype and the phenotype. 
 
