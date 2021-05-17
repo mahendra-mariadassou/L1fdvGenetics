@@ -37,7 +37,7 @@ and follow the instructions.
 sudo apt-get install r-base
 ```
 
-On **Windows**: you may need **Rtools** and **git**
+On **Windows**: you may need **Rtools** (unlikely) and **git**
 
 -   **Rtools**: visit the dedicated
     [page](https://cran.r-project.org/bin/windows/Rtools/), download the
@@ -46,7 +46,7 @@ On **Windows**: you may need **Rtools** and **git**
     [page](https://git-scm.com/download/win), download the suggested exe
     and install it on your computer
 
-On **MacOS**: you may need **XCode**
+On **MacOS**: you may need **XCode** (unlikely)
 
 -   **XCode**: visit the dedicated
     [page](https://mac.r-project.org/tools/), download the **Mandatory
@@ -71,7 +71,7 @@ install.packages("learnr")
 #### Installation (II)
 
 You need to install the tutorials **every time** I update them
-(hopefully not too often)
+(hopefully not too often).
 
 ### Installing the tutorials
 
